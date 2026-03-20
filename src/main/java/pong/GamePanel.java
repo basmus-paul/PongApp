@@ -13,8 +13,8 @@ public class GamePanel extends JPanel {
     private final InputController input = new InputController();
     private final Timer timer;
 
-    public GamePanel(GameMode mode) {
-        this.state = new GameState(mode);
+    public GamePanel(GameMode mode, Difficulty difficulty) {
+        this.state = new GameState(mode, difficulty);
 
         setPreferredSize(new Dimension(GameConstants.WIDTH, GameConstants.HEIGHT));
         setBackground(GameConstants.BG);
@@ -76,7 +76,9 @@ public class GamePanel extends JPanel {
         // mode & help
         g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
         String modeText = "Mode: " + state.getMode() + " | Left: W/S | Right: " +
-                (state.getMode() == GameMode.TWO_PLAYERS ? "Up/Down" : "Computer") +
+                (state.getMode() == GameMode.TWO_PLAYERS
+                        ? "Up/Down"
+                        : "Computer (" + state.getDifficulty() + ")") +
                 " | P: Pause | R: Reset";
         g2.setColor(new Color(255, 255, 255, 160));
         g2.drawString(modeText, 16, GameConstants.HEIGHT - 16);

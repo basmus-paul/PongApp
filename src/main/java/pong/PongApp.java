@@ -7,7 +7,8 @@ public class PongApp {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             GameMode mode = askMode();
-            new GameFrame(mode).setVisible(true);
+            Difficulty difficulty = (mode == GameMode.VS_COMPUTER) ? askDifficulty() : Difficulty.MEDIUM;
+            new GameFrame(mode, difficulty).setVisible(true);
         });
     }
 
@@ -25,5 +26,24 @@ public class PongApp {
         );
         if (choice == 1) return GameMode.VS_COMPUTER;
         return GameMode.TWO_PLAYERS;
+    }
+
+    private static Difficulty askDifficulty() {
+        Object[] options = {"Easy", "Medium", "Hard"};
+        int choice = JOptionPane.showOptionDialog(
+                null,
+                "Wähle einen Schwierigkeitsgrad:",
+                "Pong – Schwierigkeit",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[1]
+        );
+        return switch (choice) {
+            case 0  -> Difficulty.EASY;
+            case 2  -> Difficulty.HARD;
+            default -> Difficulty.MEDIUM;
+        };
     }
 }

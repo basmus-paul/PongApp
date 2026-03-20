@@ -16,12 +16,14 @@ public class GameState {
     private final Score score;
 
     private final GameMode mode;
+    private final Difficulty difficulty;
     private final AiController ai; // only used in VS_COMPUTER
 
     private boolean paused = false;
 
-    public GameState(GameMode mode) {
+    public GameState(GameMode mode, Difficulty difficulty) {
         this.mode = mode;
+        this.difficulty = difficulty;
 
         leftPaddle = new Paddle(40, (GameConstants.HEIGHT - GameConstants.PADDLE_HEIGHT) / 2.0);
         rightPaddle = new Paddle(GameConstants.WIDTH - 40 - GameConstants.PADDLE_WIDTH,
@@ -30,14 +32,18 @@ public class GameState {
         score = new Score();
 
         if (mode == GameMode.VS_COMPUTER) {
-            ai = new AiController(
-                    GameConstants.PADDLE_SPEED * 0.92,
-                    10,
-                    0.18
-            );
+            ai = createAi(difficulty);
         } else {
             ai = null;
         }
+    }
+
+    private static AiController createAi(Difficulty difficulty) {
+        return switch (difficulty) {
+            case EASY   -> new AiController(GameConstants.PADDLE_SPEED * 0.50, 30, 0.05);
+            case MEDIUM -> new AiController(GameConstants.PADDLE_SPEED * 0.72, 18, 0.11);
+            case HARD   -> new AiController(GameConstants.PADDLE_SPEED * 0.92, 10, 0.18);
+        };
     }
 
     public void update(double dt, InputController input) {
@@ -101,5 +107,6 @@ public class GameState {
     public Ball getBall() { return ball; }
     public Score getScore() { return score; }
     public GameMode getMode() { return mode; }
+    public Difficulty getDifficulty() { return difficulty; }
     public boolean isPaused() { return paused; }
 }
