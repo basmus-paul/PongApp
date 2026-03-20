@@ -11,10 +11,11 @@ import java.util.function.Consumer;
 /**
  * The main menu panel.
  *
- * <p>Shows three groups of radio buttons (language, game mode, difficulty) and
- * a "Start Game" button.  Difficulty options are automatically greyed out when
- * "2 Players" is selected; they become active again when "vs. Computer" is
- * chosen.  Switching the language instantly re-labels every component.</p>
+ * <p>Shows three groups of radio buttons (language, game mode, difficulty), a
+ * fullscreen checkbox, and a "Start Game" button.  Difficulty options are
+ * automatically greyed out when "2 Players" is selected; they become active
+ * again when "vs. Computer" is chosen.  Switching the language instantly
+ * re-labels every component.</p>
  */
 public class MenuPanel extends JPanel {
 
@@ -24,8 +25,9 @@ public class MenuPanel extends JPanel {
      * @param mode       chosen game mode
      * @param difficulty chosen difficulty (only meaningful for VS_COMPUTER)
      * @param lang       chosen language
+     * @param fullscreen whether to launch the game in fullscreen mode
      */
-    public record MenuResult(GameMode mode, Difficulty difficulty, Lang lang) {}
+    public record MenuResult(GameMode mode, Difficulty difficulty, Lang lang, boolean fullscreen) {}
 
     // ── current language ─────────────────────────────────────────────────────
     private Lang lang;
@@ -48,10 +50,13 @@ public class MenuPanel extends JPanel {
     // ── start button ─────────────────────────────────────────────────────────
     private final JButton btnStart = new JButton();
 
+    // ── fullscreen checkbox ───────────────────────────────────────────────────
+    private final JCheckBox cbFullscreen = new JCheckBox();
+
     // ── disabled foreground colour ────────────────────────────────────────────
     private static final Color FG_DISABLED = new Color(110, 110, 120);
 
-    public MenuPanel(Lang initialLang, Consumer<MenuResult> onStart) {
+    public MenuPanel(Lang initialLang, boolean initialFullscreen, Consumer<MenuResult> onStart) {
         this.lang = initialLang;
 
         setBackground(GameConstants.BG);
@@ -81,6 +86,8 @@ public class MenuPanel extends JPanel {
         bgDiff.add(rbDiffHard);
         rbDiffMedium.setSelected(true);
 
+        cbFullscreen.setSelected(initialFullscreen);
+
         // ── shared styling ────────────────────────────────────────────────────
         Font sectionFont = new Font("SansSerif", Font.BOLD, 15);
         Font itemFont    = new Font("SansSerif", Font.PLAIN, 14);
@@ -98,6 +105,11 @@ public class MenuPanel extends JPanel {
             rb.setFont(itemFont);
             rb.setFocusPainted(false);
         }
+
+        cbFullscreen.setOpaque(false);
+        cbFullscreen.setForeground(GameConstants.FG);
+        cbFullscreen.setFont(itemFont);
+        cbFullscreen.setFocusPainted(false);
 
         btnStart.setFont(new Font("SansSerif", Font.BOLD, 16));
         btnStart.setBackground(GameConstants.ACCENT);
@@ -166,6 +178,13 @@ public class MenuPanel extends JPanel {
         c.insets = new Insets(0, 4, 2, 4);
         add(lblDiffNote, c);
 
+        add(separator(), separatorConstraints(row++));
+
+        // ── fullscreen section ────────────────────────────────────────────────
+        c.gridx = 0; c.gridy = row++; c.gridwidth = 3;
+        c.insets = itemInsets();
+        add(cbFullscreen, c);
+
         // ── start button ──────────────────────────────────────────────────────
         c.gridx = 0; c.gridy = row; c.gridwidth = 3;
         c.anchor = GridBagConstraints.CENTER;
@@ -185,7 +204,7 @@ public class MenuPanel extends JPanel {
             if      (rbDiffEasy.isSelected()) diff = Difficulty.EASY;
             else if (rbDiffHard.isSelected()) diff = Difficulty.HARD;
             else                              diff = Difficulty.MEDIUM;
-            onStart.accept(new MenuResult(mode, diff, lang));
+            onStart.accept(new MenuResult(mode, diff, lang, cbFullscreen.isSelected()));
         });
     }
 
@@ -203,6 +222,7 @@ public class MenuPanel extends JPanel {
         rbDiffEasy  .setText(lang.diffEasy());
         rbDiffMedium.setText(lang.diffMedium());
         rbDiffHard  .setText(lang.diffHard());
+        cbFullscreen.setText(lang.labelFullscreen());
         btnStart    .setText(lang.btnStart());
     }
 

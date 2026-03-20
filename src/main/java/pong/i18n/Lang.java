@@ -34,6 +34,7 @@ public enum Lang {
     public String diffMedium()      { return this == EN ? "Medium"             : "Mittel"; }
     public String diffHard()        { return this == EN ? "Hard"               : "Schwer"; }
     public String btnStart()        { return this == EN ? "Start Game"         : "Spiel starten"; }
+    public String labelFullscreen() { return this == EN ? "Fullscreen"         : "Vollbild"; }
 
     // ── In-game strings ───────────────────────────────────────────────────────
 

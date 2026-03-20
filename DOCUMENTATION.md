@@ -22,6 +22,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 - 3 difficulty levels (only `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
 - Full-screen pre-game menu with radio-button lists for language, mode and difficulty
   - Difficulty options are greyed out (disabled) when 2 Players is selected
+  - **Fullscreen** checkbox launches the game in fullscreen mode (remembered when returning to the menu)
   - **Start Game** button launches the game with the chosen parameters
 - Language selection: **English** / **Deutsch** — switches all UI text instantly; remembered when returning to the menu
 - Pause: `P`
@@ -63,6 +64,7 @@ skinparam classAttributeIconSize 0
 package pong {
   class PongApp {
     -{static} currentLang: Lang
+    -{static} currentFullscreen: boolean
     +{static} main(args: String[]): void
     +{static} startGame(): void
   }
@@ -79,12 +81,12 @@ package pong {
   }
 
   class MenuFrame {
-    +MenuFrame(initialLang: Lang, onStart: Consumer<MenuResult>)
+    +MenuFrame(initialLang: Lang, initialFullscreen: boolean, onStart: Consumer<MenuResult>)
   }
 
   class MenuPanel {
     -lang: Lang
-    +MenuPanel(initialLang: Lang, onStart: Consumer<MenuResult>)
+    +MenuPanel(initialLang: Lang, initialFullscreen: boolean, onStart: Consumer<MenuResult>)
     -refreshLabels(): void
     -applyDifficultyEnabled(enabled: boolean): void
   }
@@ -93,10 +95,11 @@ package pong {
     +mode: GameMode
     +difficulty: Difficulty
     +lang: Lang
+    +fullscreen: boolean
   }
 
   class GameFrame {
-    +GameFrame(mode: GameMode, difficulty: Difficulty, lang: Lang)
+    +GameFrame(mode: GameMode, difficulty: Difficulty, lang: Lang, fullscreen: boolean)
   }
 
   class GamePanel {
@@ -288,11 +291,11 @@ Lang ..> Score : uses
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Entry point; stores the selected language across sessions; `startGame()` shows the menu |
+| `PongApp` | `pong` | Entry point; stores the selected language and fullscreen preference across sessions; `startGame()` shows the menu |
 | `MenuFrame` | `pong` | Swing window that hosts `MenuPanel`; disposes itself when "Start Game" is clicked |
-| `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), "Start Game" button |
-| `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, and language |
-| `GameFrame` | `pong` | Game window, holds `GamePanel`; passes `Lang` and the "return to menu" callback |
+| `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), fullscreen checkbox, "Start Game" button |
+| `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, language, and fullscreen flag |
+| `GameFrame` | `pong` | Game window, holds `GamePanel`; passes `Lang`, fullscreen flag, and the "return to menu" callback; applies fullscreen mode when requested |
 | `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`M` hotkeys; uses `Lang` for all overlay text |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |

@@ -56,6 +56,10 @@ Choose between **English** and **Deutsch**. The entire UI (menu labels, in-game 
 
 Press **Start Game** to launch the game with the selected parameters.
 
+### Fullscreen
+
+Check the **Fullscreen** checkbox to launch the game in fullscreen mode. Uncheck it to play in a window. The setting is remembered if you return to the menu mid-game.
+
 ## Controls
 
 | Action                  | Key (Left) | Key (Right / 2P) |
