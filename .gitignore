@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Compiled class files
+*.class
+
+# JAR files (except gradle wrapper jar)
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
