@@ -29,12 +29,13 @@ java -jar build/libs/PongApp-1.0.jar
 
 ## Controls
 
-| Action            | Key (Left) | Key (Right / 2P) |
-|-------------------|------------|------------------|
-| Paddle up         | `W`        | `↑`              |
-| Paddle down       | `S`        | `↓`              |
-| Pause             | `P`        | –                |
-| Restart           | `R`        | –                |
+| Action                  | Key (Left) | Key (Right / 2P) |
+|-------------------------|------------|------------------|
+| Paddle up               | `W`        | `↑`              |
+| Paddle down             | `S`        | `↓`              |
+| Pause                   | `P`        | –                |
+| Restart                 | `R`        | –                |
+| Back to mode selection  | `M` *(while paused or after game ends)* | – |
 
 ## Game Modes
 
@@ -53,7 +54,7 @@ When **vs. Computer** is selected, the difficulty level is then requested:
 
 ## Win Condition
 
-The first team to score **10 points** wins. Afterwards the game can be restarted with `R`.
+The first team to score **10 points** wins. Afterwards the game can be restarted with `R`, or you can return to the mode selection screen with `M`.
 
 ## Documentation
 

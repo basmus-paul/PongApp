@@ -20,6 +20,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 - 3 difficulty levels (only `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
 - Pause: `P`
 - Restart: `R`
+- Return to mode selection: `M` (available when paused or after game over)
 - Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
 - Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
 
@@ -53,6 +54,7 @@ skinparam classAttributeIconSize 0
 package pong {
   class PongApp {
     +{static} main(args: String[]): void
+    +{static} startGame(): void
     -{static} askMode(): GameMode
     -{static} askDifficulty(): Difficulty
   }
@@ -76,7 +78,8 @@ package pong {
     -state: GameState
     -input: InputController
     -timer: Timer
-    +GamePanel(mode: GameMode, difficulty: Difficulty)
+    -onReturnToMenu: Runnable
+    +GamePanel(mode: GameMode, difficulty: Difficulty, onReturnToMenu: Runnable)
     #paintComponent(g: Graphics): void
   }
 
@@ -226,9 +229,9 @@ AiController ..> GameConstants : uses
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Entry point, mode selection and difficulty selection via `JOptionPane` |
-| `GameFrame` | `pong` | Swing window, holds the `GamePanel` |
-| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer` |
+| `PongApp` | `pong` | Entry point; exposes `startGame()` for re-entry; mode and difficulty selection via `JOptionPane` |
+| `GameFrame` | `pong` | Swing window, holds the `GamePanel`; provides the "return to menu" callback |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`M` hotkeys |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |
 | `Difficulty` | `pong` | Enum: `EASY` / `MEDIUM` / `HARD` – controls AI parameters |
