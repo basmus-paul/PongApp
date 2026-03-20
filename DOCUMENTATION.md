@@ -8,6 +8,8 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 - **Controller** (`pong.input`, `pong.ai`): Keyboard input and AI control
 - **State** (`pong.GameState`): Game state, update loop, collisions, score
 - **View** (`pong.GamePanel`, `pong.GameFrame`): Rendering and window management
+- **Menu** (`pong.MenuPanel`, `pong.MenuFrame`): Pre-game menu with language, mode, and difficulty selection
+- **i18n** (`pong.i18n.Lang`): All user-visible strings in English and German
 - **Util** (`pong.util.GameConstants`): Global game constants
 
 ---
@@ -18,8 +20,13 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - `TWO_PLAYERS` (local): left `W/S`, right `↑/↓`
   - `VS_COMPUTER`: left `W/S`, right AI
 - 3 difficulty levels (only `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
+- Full-screen pre-game menu with radio-button lists for language, mode and difficulty
+  - Difficulty options are greyed out (disabled) when 2 Players is selected
+  - **Start Game** button launches the game with the chosen parameters
+- Language selection: **English** / **Deutsch** — switches all UI text instantly; remembered when returning to the menu
 - Pause: `P`
 - Restart: `R`
+- Return to menu: `M` (available when paused or after game over)
 - Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
 - Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
 
@@ -29,15 +36,18 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 
 ```
 PongApp (main)
-  └─> GameFrame (JFrame)
-        └─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)
-              ├─> GameState (game logic, update loop)
-              │     ├─> Paddle (left & right)
-              │     ├─> Ball
-              │     ├─> Score
-              │     ├─> InputController (KeyAdapter)
-              │     └─> AiController (only VS_COMPUTER)
-              └─> InputController (KeyAdapter, directly on panel)
+  └─> MenuFrame (JFrame)
+        └─> MenuPanel (JPanel, pre-game menu)
+              │  [on Start Game click]
+              └─> GameFrame (JFrame)
+                    └─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)
+                          ├─> GameState (game logic, update loop)
+                          │     ├─> Paddle (left & right)
+                          │     ├─> Ball
+                          │     ├─> Score
+                          │     ├─> InputController (KeyAdapter)
+                          │     └─> AiController (only VS_COMPUTER)
+                          └─> InputController (KeyAdapter, directly on panel)
 ```
 
 ---
@@ -52,9 +62,9 @@ skinparam classAttributeIconSize 0
 
 package pong {
   class PongApp {
+    -{static} currentLang: Lang
     +{static} main(args: String[]): void
-    -{static} askMode(): GameMode
-    -{static} askDifficulty(): Difficulty
+    +{static} startGame(): void
   }
 
   enum GameMode {
@@ -68,15 +78,34 @@ package pong {
     HARD
   }
 
+  class MenuFrame {
+    +MenuFrame(initialLang: Lang, onStart: Consumer<MenuResult>)
+  }
+
+  class MenuPanel {
+    -lang: Lang
+    +MenuPanel(initialLang: Lang, onStart: Consumer<MenuResult>)
+    -refreshLabels(): void
+    -applyDifficultyEnabled(enabled: boolean): void
+  }
+
+  class MenuPanel.MenuResult <<record>> {
+    +mode: GameMode
+    +difficulty: Difficulty
+    +lang: Lang
+  }
+
   class GameFrame {
-    +GameFrame(mode: GameMode, difficulty: Difficulty)
+    +GameFrame(mode: GameMode, difficulty: Difficulty, lang: Lang)
   }
 
   class GamePanel {
     -state: GameState
     -input: InputController
     -timer: Timer
-    +GamePanel(mode: GameMode, difficulty: Difficulty)
+    -onReturnToMenu: Runnable
+    -lang: Lang
+    +GamePanel(mode: GameMode, difficulty: Difficulty, lang: Lang, onReturnToMenu: Runnable)
     #paintComponent(g: Graphics): void
   }
 
@@ -100,6 +129,30 @@ package pong {
     +getMode(): GameMode
     +getDifficulty(): Difficulty
     +isPaused(): boolean
+  }
+}
+
+package pong.i18n {
+  enum Lang {
+    EN
+    DE
+    +displayName: String
+    +labelLanguage(): String
+    +labelGameMode(): String
+    +mode2Players(): String
+    +modeVsComputer(): String
+    +labelDifficulty(): String
+    +diffNote(): String
+    +diffEasy(): String
+    +diffMedium(): String
+    +diffHard(): String
+    +btnStart(): String
+    +statusBar(mode: GameMode, diff: Difficulty): String
+    +diffLabel(diff: Difficulty): String
+    +pauseTitle(): String
+    +pauseHint(): String
+    +winnerText(score: Score): String
+    +gameOverHint(): String
   }
 }
 
@@ -194,12 +247,18 @@ package pong.util {
 }
 
 ' Relationships
+PongApp ..> MenuFrame : creates
+PongApp ..> Lang : uses
+MenuFrame *-- MenuPanel : contains
+MenuPanel ..> GameMode : uses
+MenuPanel ..> Difficulty : uses
+MenuPanel ..> Lang : uses
+MenuPanel +-- MenuPanel.MenuResult : defines
 PongApp ..> GameFrame : creates
-PongApp ..> GameMode : uses
-PongApp ..> Difficulty : uses
 GameFrame *-- GamePanel : contains
 GamePanel *-- GameState : owns
 GamePanel *-- InputController : owns
+GamePanel ..> Lang : uses
 GameState *-- Paddle : 2
 GameState *-- Ball : 1
 GameState *-- Score : 1
@@ -216,6 +275,9 @@ Ball ..> GameConstants : uses
 Paddle ..> GameConstants : uses
 Score ..> GameConstants : uses
 AiController ..> GameConstants : uses
+Lang ..> GameMode : uses
+Lang ..> Difficulty : uses
+Lang ..> Score : uses
 
 @enduml
 ```
@@ -226,12 +288,16 @@ AiController ..> GameConstants : uses
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Entry point, mode selection and difficulty selection via `JOptionPane` |
-| `GameFrame` | `pong` | Swing window, holds the `GamePanel` |
-| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer` |
+| `PongApp` | `pong` | Entry point; stores the selected language across sessions; `startGame()` shows the menu |
+| `MenuFrame` | `pong` | Swing window that hosts `MenuPanel`; disposes itself when "Start Game" is clicked |
+| `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), "Start Game" button |
+| `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, and language |
+| `GameFrame` | `pong` | Game window, holds `GamePanel`; passes `Lang` and the "return to menu" callback |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`M` hotkeys; uses `Lang` for all overlay text |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |
 | `Difficulty` | `pong` | Enum: `EASY` / `MEDIUM` / `HARD` – controls AI parameters |
+| `Lang` | `pong.i18n` | Enum: `EN` / `DE` – provides every user-visible string in the selected language |
 | `Paddle` | `pong.model` | Paddle position, movement, collision box |
 | `Ball` | `pong.model` | Ball position, movement, wall reflection, paddle bounce |
 | `Score` | `pong.model` | Score, win condition |

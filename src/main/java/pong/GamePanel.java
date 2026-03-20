@@ -1,5 +1,6 @@
 package pong;
 
+import pong.i18n.Lang;
 import pong.input.InputController;
 import pong.util.GameConstants;
 
@@ -12,21 +13,30 @@ public class GamePanel extends JPanel {
     private final GameState state;
     private final InputController input = new InputController();
     private final Timer timer;
+    private final Runnable onReturnToMenu;
+    private final Lang lang;
 
-    public GamePanel(GameMode mode, Difficulty difficulty) {
+    public GamePanel(GameMode mode, Difficulty difficulty, Lang lang, Runnable onReturnToMenu) {
         this.state = new GameState(mode, difficulty);
+        this.lang = lang;
+        this.onReturnToMenu = onReturnToMenu;
 
         setPreferredSize(new Dimension(GameConstants.WIDTH, GameConstants.HEIGHT));
         setBackground(GameConstants.BG);
         setFocusable(true);
         addKeyListener(input);
 
-        // extra hotkeys (pause/reset)
+        // extra hotkeys (pause/reset/menu)
         addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_P) state.togglePause();
                 if (e.getKeyCode() == KeyEvent.VK_R) state.resetMatch();
+                if (e.getKeyCode() == KeyEvent.VK_M
+                        && (state.isPaused() || state.getScore().isGameOver())) {
+                    timer.stop();
+                    javax.swing.SwingUtilities.invokeLater(onReturnToMenu);
+                }
             }
         });
 
@@ -75,31 +85,33 @@ public class GamePanel extends JPanel {
 
         // mode & help
         g2.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        String modeText = "Mode: " + state.getMode() + " | Left: W/S | Right: " +
-                (state.getMode() == GameMode.TWO_PLAYERS
-                        ? "Up/Down"
-                        : "Computer (" + state.getDifficulty() + ")") +
-                " | P: Pause | R: Reset";
         g2.setColor(new Color(255, 255, 255, 160));
-        g2.drawString(modeText, 16, GameConstants.HEIGHT - 16);
+        g2.drawString(lang.statusBar(state.getMode(), state.getDifficulty()),
+                16, GameConstants.HEIGHT - 16);
 
         if (state.isPaused()) {
             g2.setFont(new Font("SansSerif", Font.BOLD, 54));
-            String t = "PAUSED";
+            String t = lang.pauseTitle();
             int w = g2.getFontMetrics().stringWidth(t);
             g2.setColor(new Color(255, 255, 255, 200));
             g2.drawString(t, (GameConstants.WIDTH - w) / 2, GameConstants.HEIGHT / 2);
+
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 16));
+            String hint = lang.pauseHint();
+            int hw = g2.getFontMetrics().stringWidth(hint);
+            g2.setColor(new Color(255, 255, 255, 170));
+            g2.drawString(hint, (GameConstants.WIDTH - hw) / 2, GameConstants.HEIGHT / 2 + 34);
         }
 
         if (state.getScore().isGameOver()) {
             g2.setFont(new Font("SansSerif", Font.BOLD, 54));
-            String t = state.getScore().winnerText();
+            String t = lang.winnerText(state.getScore());
             int w = g2.getFontMetrics().stringWidth(t);
             g2.setColor(new Color(255, 255, 255, 230));
             g2.drawString(t, (GameConstants.WIDTH - w) / 2, GameConstants.HEIGHT / 2);
 
             g2.setFont(new Font("SansSerif", Font.PLAIN, 16));
-            String hint = "Press R to restart";
+            String hint = lang.gameOverHint();
             int hw = g2.getFontMetrics().stringWidth(hint);
             g2.setColor(new Color(255, 255, 255, 170));
             g2.drawString(hint, (GameConstants.WIDTH - hw) / 2, GameConstants.HEIGHT / 2 + 34);

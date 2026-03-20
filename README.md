@@ -27,33 +27,48 @@ The finished JAR is located under `build/libs/`:
 java -jar build/libs/PongApp-1.0.jar
 ```
 
-## Controls
+## Startup Menu
 
-| Action            | Key (Left) | Key (Right / 2P) |
-|-------------------|------------|------------------|
-| Paddle up         | `W`        | `↑`              |
-| Paddle down       | `S`        | `↓`              |
-| Pause             | `P`        | –                |
-| Restart           | `R`        | –                |
+At launch a full-screen menu appears with the following options:
 
-## Game Modes
+### Language
 
-At startup a dialog appears to select the mode:
+Choose between **English** and **Deutsch**. The entire UI (menu labels, in-game text, overlays) switches language immediately when you select a different option. The language is also remembered when you return to the menu mid-game.
 
-- **2 Players** – both paddles are controlled manually
-- **vs. Computer** – the right paddle is controlled by an AI
+### Game Mode
 
-When **vs. Computer** is selected, the difficulty level is then requested:
+| Option | Description |
+|--------|-------------|
+| **2 Players** | Both paddles are controlled manually |
+| **vs. Computer** | The right paddle is controlled by an AI |
+
+### Difficulty
 
 | Difficulty | Description |
 |------------|-------------|
-| **Easy**   | Slow AI with a large tolerance zone |
+| **Easy** | Slow AI with a large tolerance zone |
 | **Medium** | Balanced AI (default) |
-| **Hard**   | Fast, highly reactive AI |
+| **Hard** | Fast, highly reactive AI |
+
+> The difficulty options are greyed out when **2 Players** is selected and become active only when **vs. Computer** is chosen.
+
+### Start Game button
+
+Press **Start Game** to launch the game with the selected parameters.
+
+## Controls
+
+| Action                  | Key (Left) | Key (Right / 2P) |
+|-------------------------|------------|------------------|
+| Paddle up               | `W`        | `↑`              |
+| Paddle down             | `S`        | `↓`              |
+| Pause                   | `P`        | –                |
+| Restart                 | `R`        | –                |
+| Back to menu            | `M` *(while paused or after game ends)* | – |
 
 ## Win Condition
 
-The first team to score **10 points** wins. Afterwards the game can be restarted with `R`.
+The first team to score **10 points** wins. Afterwards the game can be restarted with `R`, or you can return to the menu with `M`.
 
 ## Documentation
 

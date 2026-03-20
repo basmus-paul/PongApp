@@ -1,49 +1,22 @@
 package pong;
 
-import javax.swing.JOptionPane;
+import pong.i18n.Lang;
+
 import javax.swing.SwingUtilities;
 
 public class PongApp {
+
+    /** Last language chosen by the user; remembered when returning to the menu. */
+    private static Lang currentLang = Lang.EN;
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            GameMode mode = askMode();
-            Difficulty difficulty = (mode == GameMode.VS_COMPUTER) ? askDifficulty() : Difficulty.MEDIUM;
-            new GameFrame(mode, difficulty).setVisible(true);
-        });
+        SwingUtilities.invokeLater(PongApp::startGame);
     }
 
-    private static GameMode askMode() {
-        Object[] options = {"2 Spieler", "Gegen Computer"};
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Wähle einen Spielmodus:",
-                "Pong",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-        if (choice == 1) return GameMode.VS_COMPUTER;
-        return GameMode.TWO_PLAYERS;
-    }
-
-    private static Difficulty askDifficulty() {
-        Object[] options = {"Easy", "Medium", "Hard"};
-        int choice = JOptionPane.showOptionDialog(
-                null,
-                "Wähle einen Schwierigkeitsgrad:",
-                "Pong – Schwierigkeit",
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[1]
-        );
-        return switch (choice) {
-            case 0  -> Difficulty.EASY;
-            case 2  -> Difficulty.HARD;
-            default -> Difficulty.MEDIUM;
-        };
+    public static void startGame() {
+        new MenuFrame(currentLang, result -> {
+            currentLang = result.lang();
+            new GameFrame(result.mode(), result.difficulty(), result.lang()).setVisible(true);
+        }).setVisible(true);
     }
 }
