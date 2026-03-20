@@ -36,6 +36,13 @@ public enum Lang {
     public String btnStart()        { return this == EN ? "Start Game"         : "Spiel starten"; }
     public String labelFullscreen() { return this == EN ? "Fullscreen"         : "Vollbild"; }
 
+    // ── In-game menu strings ──────────────────────────────────────────────────
+
+    public String btnResume()   { return this == EN ? "Resume"    : "Weiter"; }
+    public String btnNewGame()  { return this == EN ? "New Game"  : "Neues Spiel"; }
+    public String btnExit()     { return this == EN ? "Exit"      : "Beenden"; }
+    public String inGameMenuTitle() { return this == EN ? "MENU" : "MENÜ"; }
+
     // ── In-game strings ───────────────────────────────────────────────────────
 
     /** Bottom status-bar text shown during gameplay. */
@@ -46,7 +53,7 @@ public enum Lang {
         return "Left: W/S  |  Right: " + right
                 + "   |   P: " + (this == EN ? "Pause"   : "Pause")
                 + "  |  R: "   + (this == EN ? "Reset"   : "Neustart")
-                + "  |  M: "   + (this == EN ? "Menu"    : "Menü");
+                + "  |  Esc: " + (this == EN ? "Menu"    : "Menü");
     }
 
     /** Short label for a difficulty value (used in status bar). */
@@ -60,8 +67,8 @@ public enum Lang {
 
     public String pauseTitle()    { return this == EN ? "PAUSED"        : "PAUSE"; }
     public String pauseHint()     { return this == EN
-            ? "Press M to go back to menu"
-            : "M drücken um zum Menü zurückzukehren"; }
+            ? "Press Esc to open menu  |  P to toggle pause"
+            : "Esc: Menü öffnen  |  P: Pause umschalten"; }
 
     /** Winner banner derived from the final score. */
     public String winnerText(Score score) {
@@ -72,6 +79,6 @@ public enum Lang {
     }
 
     public String gameOverHint()  { return this == EN
-            ? "Press R to restart  |  Press M to go back to menu"
-            : "R: Neustart  |  M: Menü"; }
+            ? "Press R to restart  |  Press Esc to open menu"
+            : "R: Neustart  |  Esc: Menü öffnen"; }
 }

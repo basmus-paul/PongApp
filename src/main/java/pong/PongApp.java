@@ -23,4 +23,10 @@ public class PongApp {
             new GameFrame(result.mode(), result.difficulty(), result.lang(), result.fullscreen()).setVisible(true);
         }).setVisible(true);
     }
+
+    /** Called from the in-game menu to update stored language and fullscreen preferences. */
+    public static void updatePreferences(Lang lang, boolean fullscreen) {
+        currentLang = lang;
+        currentFullscreen = fullscreen;
+    }
 }

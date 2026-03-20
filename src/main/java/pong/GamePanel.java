@@ -14,7 +14,8 @@ public class GamePanel extends JPanel {
     private final InputController input = new InputController();
     private final Timer timer;
     private final Runnable onReturnToMenu;
-    private final Lang lang;
+    private Lang lang;
+    private Runnable onEscPressed;
 
     public GamePanel(GameMode mode, Difficulty difficulty, Lang lang, Runnable onReturnToMenu) {
         this.state = new GameState(mode, difficulty);
@@ -32,10 +33,10 @@ public class GamePanel extends JPanel {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_P) state.togglePause();
                 if (e.getKeyCode() == KeyEvent.VK_R) state.resetMatch();
-                if (e.getKeyCode() == KeyEvent.VK_M
-                        && (state.isPaused() || state.getScore().isGameOver())) {
-                    timer.stop();
-                    javax.swing.SwingUtilities.invokeLater(onReturnToMenu);
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    if (onEscPressed != null) {
+                        onEscPressed.run();
+                    }
                 }
             }
         });
@@ -48,11 +49,44 @@ public class GamePanel extends JPanel {
         timer.start();
     }
 
+    /** Sets the callback invoked when the player presses {@code Esc}. */
+    public void setOnEscPressed(Runnable callback) {
+        this.onEscPressed = callback;
+    }
+
+    /** Updates the display language (in-game overlay text). */
+    public void setLang(Lang lang) {
+        this.lang = lang;
+    }
+
+    /** Pauses the game loop (no-op if already paused). */
+    public void pause() {
+        if (!state.isPaused()) state.togglePause();
+    }
+
+    /** Resumes the game loop (no-op if already running). */
+    public void resume() {
+        if (state.isPaused()) state.togglePause();
+    }
+
+    /** Stops the timer and returns to the menu. */
+    public void stopAndReturnToMenu() {
+        timer.stop();
+        javax.swing.SwingUtilities.invokeLater(onReturnToMenu);
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Scale game to fill actual component size (fixes fullscreen rendering)
+        int cw = getWidth();
+        int ch = getHeight();
+        if (cw != GameConstants.WIDTH || ch != GameConstants.HEIGHT) {
+            g2.scale((double) cw / GameConstants.WIDTH, (double) ch / GameConstants.HEIGHT);
+        }
 
         // middle dashed line
         g2.setColor(new Color(255, 255, 255, 40));

@@ -25,9 +25,14 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - **Fullscreen** checkbox launches the game in fullscreen mode (remembered when returning to the menu)
   - **Start Game** button launches the game with the chosen parameters
 - Language selection: **English** / **Deutsch** — switches all UI text instantly; remembered when returning to the menu
-- Pause: `P`
+- Fullscreen rendering scales to the actual screen size
+- Pause toggle: `P`
 - Restart: `R`
-- Return to menu: `M` (available when paused or after game over)
+- In-game menu: `Esc` (pauses game, overlay menu on top of the game)
+  - **Resume** – close overlay and continue game (also press `Esc` again)
+  - **New Game** – apply chosen settings and start a fresh game
+  - **Exit** – return to the main menu
+  - All game settings (language, mode, difficulty, fullscreen) available in the overlay
 - Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
 - Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
 
@@ -41,14 +46,15 @@ PongApp (main)
         └─> MenuPanel (JPanel, pre-game menu)
               │  [on Start Game click]
               └─> GameFrame (JFrame)
-                    └─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)
-                          ├─> GameState (game logic, update loop)
-                          │     ├─> Paddle (left & right)
-                          │     ├─> Ball
-                          │     ├─> Score
-                          │     ├─> InputController (KeyAdapter)
-                          │     └─> AiController (only VS_COMPUTER)
-                          └─> InputController (KeyAdapter, directly on panel)
+                    ├─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)  [content pane]
+                    │     ├─> GameState (game logic, update loop)
+                    │     │     ├─> Paddle (left & right)
+                    │     │     ├─> Ball
+                    │     │     ├─> Score
+                    │     │     ├─> InputController (KeyAdapter)
+                    │     │     └─> AiController (only VS_COMPUTER)
+                    │     └─> InputController (KeyAdapter, directly on panel)
+                    └─> InGameMenuPanel (JPanel, glass pane, Esc-key overlay menu)
 ```
 
 ---
@@ -67,6 +73,7 @@ package pong {
     -{static} currentFullscreen: boolean
     +{static} main(args: String[]): void
     +{static} startGame(): void
+    +{static} updatePreferences(lang: Lang, fullscreen: boolean): void
   }
 
   enum GameMode {
@@ -102,13 +109,25 @@ package pong {
     +GameFrame(mode: GameMode, difficulty: Difficulty, lang: Lang, fullscreen: boolean)
   }
 
+  class InGameMenuPanel {
+    -lang: Lang
+    +InGameMenuPanel(initialMode: GameMode, initialDifficulty: Difficulty, initialLang: Lang, initialFullscreen: boolean, onResume: Runnable, onNewGame: Consumer<MenuResult>, onExit: Runnable)
+    #paintComponent(g: Graphics): void
+  }
+
   class GamePanel {
     -state: GameState
     -input: InputController
     -timer: Timer
     -onReturnToMenu: Runnable
     -lang: Lang
+    -onEscPressed: Runnable
     +GamePanel(mode: GameMode, difficulty: Difficulty, lang: Lang, onReturnToMenu: Runnable)
+    +setOnEscPressed(callback: Runnable): void
+    +setLang(lang: Lang): void
+    +pause(): void
+    +resume(): void
+    +stopAndReturnToMenu(): void
     #paintComponent(g: Graphics): void
   }
 
@@ -150,6 +169,11 @@ package pong.i18n {
     +diffMedium(): String
     +diffHard(): String
     +btnStart(): String
+    +btnResume(): String
+    +btnNewGame(): String
+    +btnExit(): String
+    +inGameMenuTitle(): String
+    +labelFullscreen(): String
     +statusBar(mode: GameMode, diff: Difficulty): String
     +diffLabel(diff: Difficulty): String
     +pauseTitle(): String
@@ -259,9 +283,14 @@ MenuPanel ..> Lang : uses
 MenuPanel +-- MenuPanel.MenuResult : defines
 PongApp ..> GameFrame : creates
 GameFrame *-- GamePanel : contains
+GameFrame *-- InGameMenuPanel : glass pane
 GamePanel *-- GameState : owns
 GamePanel *-- InputController : owns
 GamePanel ..> Lang : uses
+InGameMenuPanel ..> GameMode : uses
+InGameMenuPanel ..> Difficulty : uses
+InGameMenuPanel ..> Lang : uses
+InGameMenuPanel ..> MenuPanel.MenuResult : creates
 GameState *-- Paddle : 2
 GameState *-- Ball : 1
 GameState *-- Score : 1
@@ -291,12 +320,13 @@ Lang ..> Score : uses
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Entry point; stores the selected language and fullscreen preference across sessions; `startGame()` shows the menu |
+| `PongApp` | `pong` | Entry point; stores the selected language and fullscreen preference across sessions; `startGame()` shows the menu; `updatePreferences()` persists in-game settings changes |
 | `MenuFrame` | `pong` | Swing window that hosts `MenuPanel`; disposes itself when "Start Game" is clicked |
 | `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), fullscreen checkbox, "Start Game" button |
 | `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, language, and fullscreen flag |
-| `GameFrame` | `pong` | Game window, holds `GamePanel`; passes `Lang`, fullscreen flag, and the "return to menu" callback; applies fullscreen mode when requested |
-| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`M` hotkeys; uses `Lang` for all overlay text |
+| `GameFrame` | `pong` | Game window; hosts `GamePanel` as content pane and `InGameMenuPanel` as glass pane; wires ESC-key logic to show/hide the overlay; handles fullscreen; scales game to screen |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`Esc` hotkeys; scales drawing to fill actual component size (fullscreen fix); uses `Lang` for all overlay text |
+| `InGameMenuPanel` | `pong` | Semi-transparent glass-pane overlay shown on `Esc`; provides Resume / New Game / Exit buttons plus all game settings (language, mode, difficulty, fullscreen); game stays visible behind it |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |
 | `Difficulty` | `pong` | Enum: `EASY` / `MEDIUM` / `HARD` – controls AI parameters |

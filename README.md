@@ -66,13 +66,25 @@ Check the **Fullscreen** checkbox to launch the game in fullscreen mode. Uncheck
 |-------------------------|------------|------------------|
 | Paddle up               | `W`        | `↑`              |
 | Paddle down             | `S`        | `↓`              |
-| Pause                   | `P`        | –                |
+| Pause / toggle          | `P`        | –                |
 | Restart                 | `R`        | –                |
-| Back to menu            | `M` *(while paused or after game ends)* | – |
+| Open / close in-game menu | `Esc`    | –                |
+
+## In-Game Menu
+
+Press **`Esc`** at any time during gameplay to pause the game and open the in-game menu. The game is visible in the background while the menu is shown. From the menu you can:
+
+| Option | Description |
+|--------|-------------|
+| **Resume** | Close the menu and continue the current game (also: press `Esc` again) |
+| **New Game** | Apply the selected settings and start a fresh game |
+| **Exit** | Return to the main start menu |
+
+The in-game menu contains the same settings as the start menu (language, game mode, difficulty, fullscreen). Changes take effect when you click **New Game**.
 
 ## Win Condition
 
-The first team to score **10 points** wins. Afterwards the game can be restarted with `R`, or you can return to the menu with `M`.
+The first team to score **10 points** wins. Afterwards the game can be restarted with `R`, or you can open the in-game menu with `Esc` to return to the main menu or start a new game.
 
 ## Documentation
 

@@ -17,6 +17,7 @@ public class GameFrame extends JFrame {
         GraphicsDevice gd = GraphicsEnvironment
                 .getLocalGraphicsEnvironment().getDefaultScreenDevice();
 
+        // ── game panel ────────────────────────────────────────────────────────
         GamePanel panel = new GamePanel(mode, difficulty, lang, () -> {
             if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
             dispose();
@@ -25,6 +26,51 @@ public class GameFrame extends JFrame {
         setContentPane(panel);
         pack();
 
+        // ── in-game overlay menu (glass pane) ─────────────────────────────────
+        InGameMenuPanel overlay = new InGameMenuPanel(
+                mode, difficulty, lang, fullscreen,
+                // onResume
+                () -> {
+                    setGlassPane(new javax.swing.JPanel());  // clear glass pane
+                    getGlassPane().setVisible(false);
+                    panel.resume();
+                    panel.requestFocusInWindow();
+                },
+                // onNewGame
+                result -> {
+                    PongApp.updatePreferences(result.lang(), result.fullscreen());
+                    if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
+                    dispose();
+                    SwingUtilities.invokeLater(() ->
+                            new GameFrame(result.mode(), result.difficulty(),
+                                    result.lang(), result.fullscreen()).setVisible(true));
+                },
+                // onExit
+                () -> {
+                    if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
+                    dispose();
+                    SwingUtilities.invokeLater(PongApp::startGame);
+                }
+        );
+
+        // ── ESC key: pause + show / hide overlay ──────────────────────────────
+        panel.setOnEscPressed(() -> {
+            boolean overlayVisible = getGlassPane().isVisible()
+                    && getGlassPane() instanceof InGameMenuPanel;
+            if (overlayVisible) {
+                // ESC pressed again → resume
+                setGlassPane(new javax.swing.JPanel());
+                getGlassPane().setVisible(false);
+                panel.resume();
+                panel.requestFocusInWindow();
+            } else {
+                panel.pause();
+                setGlassPane(overlay);
+                overlay.setVisible(true);
+            }
+        });
+
+        // ── fullscreen ────────────────────────────────────────────────────────
         if (fullscreen) {
             if (gd.isFullScreenSupported()) {
                 gd.setFullScreenWindow(this);
