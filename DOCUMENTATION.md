@@ -1,50 +1,50 @@
-# Pong (Java, OOP) – Dokumentation
+# Pong (Java, OOP) – Documentation
 
-## Kurzbeschreibung
+## Brief Description
 
-Objektorientiertes Pong-Spiel in Java (Swing), aufgeteilt in klar getrennte Schichten:
+An object-oriented Pong game in Java (Swing), divided into clearly separated layers:
 
-- **Model** (`pong.model`): Spielobjekte und Logik (Ball, Paddle, Score)
-- **Controller** (`pong.input`, `pong.ai`): Tastatureingabe und KI-Steuerung
-- **State** (`pong.GameState`): Spielzustand, Update-Schleife, Kollisionen, Punktestand
-- **View** (`pong.GamePanel`, `pong.GameFrame`): Rendering und Fenster-Management
-- **Util** (`pong.util.GameConstants`): Globale Spielkonstanten
+- **Model** (`pong.model`): Game objects and logic (Ball, Paddle, Score)
+- **Controller** (`pong.input`, `pong.ai`): Keyboard input and AI control
+- **State** (`pong.GameState`): Game state, update loop, collisions, score
+- **View** (`pong.GamePanel`, `pong.GameFrame`): Rendering and window management
+- **Util** (`pong.util.GameConstants`): Global game constants
 
 ---
 
 ## Features
 
-- 2 Modi:
-  - `TWO_PLAYERS` (lokal): links `W/S`, rechts `↑/↓`
-  - `VS_COMPUTER`: links `W/S`, rechts KI
-- 3 Schwierigkeitsgrade (nur `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
+- 2 modes:
+  - `TWO_PLAYERS` (local): left `W/S`, right `↑/↓`
+  - `VS_COMPUTER`: left `W/S`, right AI
+- 3 difficulty levels (only `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
 - Pause: `P`
-- Neustart: `R`
-- Siegbedingung: erstes Team mit 10 Punkten (konfigurierbar via `GameConstants.MAX_SCORE`)
-- Smooth-AI mit schwierigkeitsabhängiger Geschwindigkeit, Toleranzzone und Reaktionsverzögerung (`reactionBlend`)
+- Restart: `R`
+- Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
+- Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
 
 ---
 
-## Architekturüberblick
+## Architecture Overview
 
 ```
 PongApp (main)
   └─> GameFrame (JFrame)
         └─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)
-              ├─> GameState (Spiellogik, Update-Schleife)
-              │     ├─> Paddle (links & rechts)
+              ├─> GameState (game logic, update loop)
+              │     ├─> Paddle (left & right)
               │     ├─> Ball
               │     ├─> Score
               │     ├─> InputController (KeyAdapter)
-              │     └─> AiController (nur VS_COMPUTER)
-              └─> InputController (KeyAdapter, direkt am Panel)
+              │     └─> AiController (only VS_COMPUTER)
+              └─> InputController (KeyAdapter, directly on panel)
 ```
 
 ---
 
-## UML-Klassendiagramm (PlantUML)
+## UML Class Diagram (PlantUML)
 
-> Kann z.B. mit dem PlantUML-Plugin in IntelliJ IDEA oder VS Code gerendert werden.
+> Can be rendered e.g. with the PlantUML plugin in IntelliJ IDEA or VS Code.
 
 ```plantuml
 @startuml
@@ -222,19 +222,19 @@ AiController ..> GameConstants : uses
 
 ---
 
-## Klassenverantwortlichkeiten
+## Class Responsibilities
 
-| Klasse | Paket | Aufgabe |
+| Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Einstiegspunkt, Moduswahl und Schwierigkeitsauswahl via `JOptionPane` |
-| `GameFrame` | `pong` | Swing-Fenster, hält das `GamePanel` |
-| `GamePanel` | `pong` | Rendering (Swing), Game-Loop via `javax.swing.Timer` |
-| `GameState` | `pong` | Spielzustand, Update-Logik, Kollisionserkennung, Punktestand |
+| `PongApp` | `pong` | Entry point, mode selection and difficulty selection via `JOptionPane` |
+| `GameFrame` | `pong` | Swing window, holds the `GamePanel` |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer` |
+| `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |
-| `Difficulty` | `pong` | Enum: `EASY` / `MEDIUM` / `HARD` – steuert KI-Parameter |
-| `Paddle` | `pong.model` | Schläger-Position, Bewegung, Kollisionsbox |
-| `Ball` | `pong.model` | Ball-Position, Bewegung, Wandreflexion, Paddle-Bounce |
-| `Score` | `pong.model` | Punktestand, Siegbedingung |
-| `InputController` | `pong.input` | Tastatureingaben via `KeyAdapter` |
-| `AiController` | `pong.ai` | KI-Steuerung des rechten Schlägers mit schwierigkeitsabhängiger Reaktion |
-| `GameConstants` | `pong.util` | Zentrale Spielkonstanten (Größen, Geschwindigkeiten, Farben) |
+| `Difficulty` | `pong` | Enum: `EASY` / `MEDIUM` / `HARD` – controls AI parameters |
+| `Paddle` | `pong.model` | Paddle position, movement, collision box |
+| `Ball` | `pong.model` | Ball position, movement, wall reflection, paddle bounce |
+| `Score` | `pong.model` | Score, win condition |
+| `InputController` | `pong.input` | Keyboard input via `KeyAdapter` |
+| `AiController` | `pong.ai` | AI control of the right paddle with difficulty-dependent reaction |
+| `GameConstants` | `pong.util` | Central game constants (sizes, speeds, colors) |

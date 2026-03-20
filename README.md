@@ -1,60 +1,60 @@
 # PongApp
 
-Ein objektorientiertes Pong-Spiel in Java (Swing) mit zwei Spielmodi: Zwei Spieler lokal oder gegen den Computer.
+An object-oriented Pong game in Java (Swing) with two game modes: two players locally or against the computer.
 
-## Voraussetzungen
+## Prerequisites
 
-- **JDK 25** (wird automatisch über die Gradle Java Toolchain heruntergeladen)
-- Gradle Wrapper ist im Repo enthalten – kein separates Gradle-Install nötig
+- **JDK 25** (downloaded automatically via the Gradle Java Toolchain)
+- Gradle Wrapper is included in the repo – no separate Gradle installation needed
 
-## Projekt bauen & starten
+## Building & Running the Project
 
-### Spiel direkt starten
+### Run the game directly
 
 ```bash
 ./gradlew run
 ```
 
-### JAR erzeugen
+### Build a JAR
 
 ```bash
 ./gradlew clean jar
 ```
 
-Das fertige JAR liegt unter `build/libs/`:
+The finished JAR is located under `build/libs/`:
 
 ```bash
 java -jar build/libs/PongApp-1.0.jar
 ```
 
-## Steuerung
+## Controls
 
-| Aktion            | Taste (Links) | Taste (Rechts / 2P) |
-|-------------------|---------------|----------------------|
-| Schläger hoch     | `W`           | `↑`                  |
-| Schläger runter   | `S`           | `↓`                  |
-| Pause             | `P`           | –                    |
-| Neustart          | `R`           | –                    |
+| Action            | Key (Left) | Key (Right / 2P) |
+|-------------------|------------|------------------|
+| Paddle up         | `W`        | `↑`              |
+| Paddle down       | `S`        | `↓`              |
+| Pause             | `P`        | –                |
+| Restart           | `R`        | –                |
 
-## Spielmodi
+## Game Modes
 
-Beim Start erscheint ein Dialog zur Moduswahl:
+At startup a dialog appears to select the mode:
 
-- **2 Spieler** – beide Schläger werden manuell gesteuert
-- **Gegen Computer** – der rechte Schläger wird von einer KI gesteuert
+- **2 Players** – both paddles are controlled manually
+- **vs. Computer** – the right paddle is controlled by an AI
 
-Bei **Gegen Computer** wird anschließend der Schwierigkeitsgrad abgefragt:
+When **vs. Computer** is selected, the difficulty level is then requested:
 
-| Schwierigkeit | Beschreibung |
-|---------------|--------------|
-| **Easy**      | Langsame KI mit großer Toleranzzone |
-| **Medium**    | Ausgeglichene KI (Standard) |
-| **Hard**      | Schnelle, reaktionsstarke KI |
+| Difficulty | Description |
+|------------|-------------|
+| **Easy**   | Slow AI with a large tolerance zone |
+| **Medium** | Balanced AI (default) |
+| **Hard**   | Fast, highly reactive AI |
 
-## Siegbedingung
+## Win Condition
 
-Das erste Team, das **10 Punkte** erzielt, gewinnt. Danach kann mit `R` neu gestartet werden.
+The first team to score **10 points** wins. Afterwards the game can be restarted with `R`.
 
-## Dokumentation
+## Documentation
 
-Siehe [DOCUMENTATION.md](DOCUMENTATION.md) für den Architekturüberblick und das UML-Klassendiagramm.
+See [DOCUMENTATION.md](DOCUMENTATION.md) for the architecture overview and the UML class diagram.
