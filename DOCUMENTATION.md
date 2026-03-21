@@ -26,6 +26,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - **Start Game** button launches the game with the chosen parameters
 - Language selection: **English** / **Deutsch** — switches all UI text instantly; remembered when returning to the menu
 - Fullscreen rendering scales to the actual screen size
+- Real-time simulation independent of rendering speed and display refresh rate (fixed-timestep game loop thread; frame time clamped to avoid spiral-of-death)
 - Pause toggle: `P`
 - Restart: `R`
 - In-game menu: `Esc` (pauses game, overlay menu on top of the game)
@@ -46,7 +47,7 @@ PongApp (main)
         └─> MenuPanel (JPanel, pre-game menu)
               │  [on Start Game click]
               └─> GameFrame (JFrame)
-                    ├─> GamePanel (JPanel, Game-Loop via javax.swing.Timer)  [content pane]
+                    ├─> GamePanel (JPanel, Game-Loop via dedicated Thread / fixed-timestep accumulator)  [content pane]
                     │     ├─> GameState (game logic, update loop)
                     │     │     ├─> Paddle (left & right)
                     │     │     ├─> Ball
@@ -116,13 +117,21 @@ package pong {
   }
 
   class GamePanel {
+    -{static} STEP: double
+    -{static} MAX_FRAME_TIME: double
+    -{static} MAX_UPDATES_PER_FRAME: int
     -state: GameState
     -input: InputController
-    -timer: Timer
+    -running: boolean
+    -repaintPending: boolean
+    -gameThread: Thread
     -onReturnToMenu: Runnable
     -lang: Lang
     -onEscPressed: Runnable
     +GamePanel(mode: GameMode, difficulty: Difficulty, lang: Lang, onReturnToMenu: Runnable)
+    -startGameLoop(): void
+    +addNotify(): void
+    +removeNotify(): void
     +setOnEscPressed(callback: Runnable): void
     +setLang(lang: Lang): void
     +pause(): void
@@ -325,7 +334,7 @@ Lang ..> Score : uses
 | `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), fullscreen checkbox, "Start Game" button |
 | `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, language, and fullscreen flag |
 | `GameFrame` | `pong` | Game window; hosts `GamePanel` as content pane and `InGameMenuPanel` as glass pane; wires ESC-key logic to show/hide the overlay; handles fullscreen; scales game to screen |
-| `GamePanel` | `pong` | Rendering (Swing), game loop via `javax.swing.Timer`; handles `P`/`R`/`Esc` hotkeys; scales drawing to fill actual component size (fullscreen fix); uses `Lang` for all overlay text |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via a dedicated `Thread` with a fixed-timestep accumulator (real-time simulation independent of rendering speed); handles `P`/`R`/`Esc` hotkeys; scales drawing to fill actual component size (fullscreen fix); uses `Lang` for all overlay text |
 | `InGameMenuPanel` | `pong` | Semi-transparent glass-pane overlay shown on `Esc`; provides Resume / New Game / Exit buttons plus all game settings (language, mode, difficulty, fullscreen); game stays visible behind it |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |

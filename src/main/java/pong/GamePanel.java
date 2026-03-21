@@ -5,17 +5,24 @@ import pong.input.InputController;
 import pong.util.GameConstants;
 
 import javax.swing.JPanel;
-import javax.swing.Timer;
+import javax.swing.SwingUtilities;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
 public class GamePanel extends JPanel {
+    private static final double STEP = 1.0 / GameConstants.FPS;
+    private static final double MAX_FRAME_TIME = 0.25;
+    private static final int MAX_UPDATES_PER_FRAME = 5;
+
     private final GameState state;
     private final InputController input = new InputController();
-    private final Timer timer;
     private final Runnable onReturnToMenu;
     private Lang lang;
     private Runnable onEscPressed;
+
+    private volatile boolean running = false;
+    private volatile boolean repaintPending = false;
+    private Thread gameThread;
 
     public GamePanel(GameMode mode, Difficulty difficulty, Lang lang, Runnable onReturnToMenu) {
         this.state = new GameState(mode, difficulty);
@@ -40,13 +47,74 @@ public class GamePanel extends JPanel {
                 }
             }
         });
+    }
 
-        int delayMs = (int) Math.round(1000.0 / GameConstants.FPS);
-        timer = new Timer(delayMs, e -> {
-            state.update(GameConstants.DT, input);
-            repaint();
-        });
-        timer.start();
+    private void startGameLoop() {
+        running = true;
+        gameThread = new Thread(() -> {
+            long previous = System.nanoTime();
+            double accumulator = 0.0;
+
+            while (running) {
+                long now = System.nanoTime();
+                double frameTime = (now - previous) / 1_000_000_000.0;
+                previous = now;
+
+                if (frameTime > MAX_FRAME_TIME) {
+                    frameTime = MAX_FRAME_TIME;
+                }
+                accumulator += frameTime;
+
+                int steps = 0;
+                while (accumulator >= STEP && steps < MAX_UPDATES_PER_FRAME) {
+                    state.update(STEP, input);
+                    accumulator -= STEP;
+                    steps++;
+                }
+                if (steps >= MAX_UPDATES_PER_FRAME) {
+                    accumulator = 0.0;
+                }
+
+                if (!repaintPending) {
+                    repaintPending = true;
+                    SwingUtilities.invokeLater(() -> {
+                        repaintPending = false;
+                        repaint();
+                    });
+                }
+
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }, "GameLoop");
+        gameThread.setDaemon(true);
+        gameThread.start();
+    }
+
+    @Override
+    public synchronized void addNotify() {
+        super.addNotify();
+        if (!running) {
+            startGameLoop();
+        }
+    }
+
+    @Override
+    public synchronized void removeNotify() {
+        running = false;
+        if (gameThread != null) {
+            gameThread.interrupt();
+            try {
+                gameThread.join(200);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        super.removeNotify();
     }
 
     /** Sets the callback invoked when the player presses {@code Esc}. */
@@ -69,10 +137,13 @@ public class GamePanel extends JPanel {
         if (state.isPaused()) state.togglePause();
     }
 
-    /** Stops the timer and returns to the menu. */
+    /** Stops the game loop and returns to the menu. */
     public void stopAndReturnToMenu() {
-        timer.stop();
-        javax.swing.SwingUtilities.invokeLater(onReturnToMenu);
+        running = false;
+        if (gameThread != null) {
+            gameThread.interrupt();
+        }
+        SwingUtilities.invokeLater(onReturnToMenu);
     }
 
     @Override
