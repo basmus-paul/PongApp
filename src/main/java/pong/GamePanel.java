@@ -13,6 +13,7 @@ public class GamePanel extends JPanel {
     private static final double STEP = 1.0 / GameConstants.FPS;
     private static final double MAX_FRAME_TIME = 0.25;
     private static final int MAX_UPDATES_PER_FRAME = 5;
+    private static final double COUNTDOWN_START = 3.0;
 
     private final GameState state;
     private final InputController input = new InputController();
@@ -20,6 +21,7 @@ public class GamePanel extends JPanel {
     private Lang lang;
     private Runnable onEscPressed;
 
+    private volatile double countdown = COUNTDOWN_START;
     private volatile boolean running = false;
     private volatile boolean repaintPending = false;
     private Thread gameThread;
@@ -39,7 +41,10 @@ public class GamePanel extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_P) state.togglePause();
-                if (e.getKeyCode() == KeyEvent.VK_R) state.resetMatch();
+                if (e.getKeyCode() == KeyEvent.VK_R) {
+                    state.resetMatch();
+                    countdown = COUNTDOWN_START;
+                }
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     if (onEscPressed != null) {
                         onEscPressed.run();
@@ -67,7 +72,11 @@ public class GamePanel extends JPanel {
 
                 int steps = 0;
                 while (accumulator >= STEP && steps < MAX_UPDATES_PER_FRAME) {
-                    state.update(STEP, input);
+                    if (countdown > 0) {
+                        countdown = Math.max(0, countdown - STEP);
+                    } else {
+                        state.update(STEP, input);
+                    }
                     accumulator -= STEP;
                     steps++;
                 }
@@ -217,6 +226,18 @@ public class GamePanel extends JPanel {
             int hw = g2.getFontMetrics().stringWidth(hint);
             g2.setColor(new Color(255, 255, 255, 170));
             g2.drawString(hint, (GameConstants.WIDTH - hw) / 2, GameConstants.HEIGHT / 2 + 34);
+        }
+
+        double snap = countdown;
+        if (snap > 0) {
+            int displayNum = (int) Math.ceil(snap);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 120));
+            String countText = String.valueOf(displayNum);
+            FontMetrics cfm = g2.getFontMetrics();
+            int cw2 = cfm.stringWidth(countText);
+            g2.setColor(new Color(255, 255, 255, 210));
+            g2.drawString(countText, (GameConstants.WIDTH - cw2) / 2,
+                    GameConstants.HEIGHT / 2 + cfm.getAscent() / 2 - cfm.getDescent());
         }
 
         // Frame has been painted; allow the game loop to queue the next repaint.

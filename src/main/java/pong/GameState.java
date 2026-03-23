@@ -40,9 +40,9 @@ public class GameState {
 
     private static AiController createAi(Difficulty difficulty) {
         return switch (difficulty) {
-            case EASY   -> new AiController(GameConstants.PADDLE_SPEED * 0.50, 30, 0.05);
-            case MEDIUM -> new AiController(GameConstants.PADDLE_SPEED * 0.72, 18, 0.11);
-            case HARD   -> new AiController(GameConstants.PADDLE_SPEED * 0.92, 10, 0.18);
+            case EASY   -> new AiController(GameConstants.PADDLE_SPEED * 0.72, 18, 0.11);
+            case MEDIUM -> new AiController(GameConstants.PADDLE_SPEED * 0.92, 10, 0.18);
+            case HARD   -> new AiController(GameConstants.PADDLE_SPEED * 1.00,  4, 0.35);
         };
     }
 

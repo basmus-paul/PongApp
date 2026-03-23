@@ -20,6 +20,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - `TWO_PLAYERS` (local): left `W/S`, right `↑/↓`
   - `VS_COMPUTER`: left `W/S`, right AI
 - 3 difficulty levels (only `VS_COMPUTER`): `EASY`, `MEDIUM`, `HARD`
+- **3-second countdown** (3 → 2 → 1) shown in the centre of the screen before gameplay begins; also resets on `R` (match restart)
 - Full-screen pre-game menu with radio-button lists for language, mode and difficulty
   - Difficulty options are greyed out (disabled) when 2 Players is selected
   - **Fullscreen** checkbox launches the game in fullscreen mode (remembered when returning to the menu)
@@ -30,7 +31,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 - Thread-safe keyboard input: key state is tracked with a `ConcurrentHashMap`-backed set, safe for concurrent reads from the game loop thread and writes from the EDT
 - Reduced repaint latency: `repaint()` is called directly from the game loop thread (no extra EDT queue hop via `invokeLater`); `repaintPending` is reset only after an actual frame has been painted, ensuring at most one outstanding repaint request at all times
 - Pause toggle: `P`
-- Restart: `R`
+- Restart (+ new 3-second countdown): `R`
 - In-game menu: `Esc` (pauses game, overlay menu on top of the game)
   - **Resume** – close overlay and continue game (also press `Esc` again)
   - **New Game** – apply chosen settings and start a fresh game
@@ -38,6 +39,9 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - All game settings (language, mode, difficulty, fullscreen) available in the overlay
 - Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
 - Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
+  - `EASY`: balanced challenge (former Medium parameters)
+  - `MEDIUM`: fast and reactive AI (former Hard parameters)
+  - `HARD`: maximum-speed AI with near-instant reaction — significantly more difficult than Medium
 
 ---
 
@@ -122,8 +126,10 @@ package pong {
     -{static} STEP: double
     -{static} MAX_FRAME_TIME: double
     -{static} MAX_UPDATES_PER_FRAME: int
+    -{static} COUNTDOWN_START: double
     -state: GameState
     -input: InputController
+    -countdown: double
     -running: boolean
     -repaintPending: boolean
     -gameThread: Thread
@@ -337,7 +343,7 @@ Lang ..> Score : uses
 | `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), fullscreen checkbox, "Start Game" button |
 | `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, language, and fullscreen flag |
 | `GameFrame` | `pong` | Game window; hosts `GamePanel` as content pane and `InGameMenuPanel` as glass pane; wires ESC-key logic to show/hide the overlay; handles fullscreen; scales game to screen |
-| `GamePanel` | `pong` | Rendering (Swing), game loop via a dedicated `Thread` with a fixed-timestep accumulator (real-time simulation independent of rendering speed); handles `P`/`R`/`Esc` hotkeys; scales drawing to fill actual component size (fullscreen fix); calls `repaint()` directly from the game loop thread (no extra EDT queue hop) and resets `repaintPending` inside `paintComponent` after each actual frame is painted; uses `Lang` for all overlay text |
+| `GamePanel` | `pong` | Rendering (Swing), game loop via a dedicated `Thread` with a fixed-timestep accumulator (real-time simulation independent of rendering speed); 3-second countdown before gameplay begins (also resets on `R`); handles `P`/`R`/`Esc` hotkeys; scales drawing to fill actual component size (fullscreen fix); calls `repaint()` directly from the game loop thread (no extra EDT queue hop) and resets `repaintPending` inside `paintComponent` after each actual frame is painted; uses `Lang` for all overlay text |
 | `InGameMenuPanel` | `pong` | Semi-transparent glass-pane overlay shown on `Esc`; provides Resume / New Game / Exit buttons plus all game settings (language, mode, difficulty, fullscreen); game stays visible behind it |
 | `GameState` | `pong` | Game state, update logic, collision detection, score |
 | `GameMode` | `pong` | Enum: `TWO_PLAYERS` / `VS_COMPUTER` |
