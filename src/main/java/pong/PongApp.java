@@ -1,6 +1,7 @@
 package pong;
 
 import pong.i18n.Lang;
+import pong.online.OnlineMenuFrame;
 
 import javax.swing.SwingUtilities;
 
@@ -17,11 +18,19 @@ public class PongApp {
     }
 
     public static void startGame() {
-        new MenuFrame(currentLang, currentPreset, result -> {
-            currentLang   = result.lang();
-            currentPreset = result.preset();
-            new GameFrame(result.mode(), result.difficulty(), result.lang(), result.preset()).setVisible(true);
-        }).setVisible(true);
+        new MenuFrame(currentLang, currentPreset,
+                result -> {
+                    currentLang   = result.lang();
+                    currentPreset = result.preset();
+                    new GameFrame(result.mode(), result.difficulty(), result.lang(), result.preset()).setVisible(true);
+                },
+                PongApp::startOnline
+        ).setVisible(true);
+    }
+
+    /** Opens the LAN online multiplayer menu. */
+    public static void startOnline() {
+        new OnlineMenuFrame(currentPreset, PongApp::startGame).setVisible(true);
     }
 
     /** Called from the in-game menu to update stored language and window-size preferences. */

@@ -9,6 +9,7 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
 - **State** (`pong.GameState`): Game state, update loop, collisions, score
 - **View** (`pong.GamePanel`, `pong.GameFrame`): Rendering and window management
 - **Menu** (`pong.MenuPanel`, `pong.MenuFrame`): Pre-game menu with language, mode, difficulty and window-size selection
+- **Online** (`pong.online`): LAN TCP multiplayer – server, client, online-specific panels and menus (kept fully separate from `GameMode`)
 - **i18n** (`pong.i18n.Lang`): All user-visible strings in English and German
 - **Util** (`pong.util.GameConstants`): Global game constants
 
@@ -48,6 +49,12 @@ An object-oriented Pong game in Java (Swing), divided into clearly separated lay
   - All game settings (language, mode, difficulty, window size) available in the overlay
 - Win condition: first team with 10 points (configurable via `GameConstants.MAX_SCORE`)
 - Smooth AI with difficulty-dependent speed, tolerance zone and reaction delay (`reactionBlend`)
+- **LAN online multiplayer** over TCP (port 7777):
+  - Host/join flow accessible via the "Online Multiplayer (LAN)" button in the main menu
+  - Host displays LAN IP addresses so the joiner can connect
+  - Authoritative server simulation; client sends inputs only; server broadcasts snapshots
+  - Clean disconnect handling with dialog and return to main menu
+  - Kept entirely separate from `GameMode` / `Difficulty` / `AiController`
   - `EASY`: balanced challenge (former Medium parameters)
   - `MEDIUM`: fast and reactive AI (former Hard parameters)
   - `HARD`: maximum-speed AI with near-instant reaction — significantly more difficult than Medium
@@ -61,16 +68,45 @@ PongApp (main)
   └─> MenuFrame (JFrame)
         └─> MenuPanel (JPanel, pre-game menu)
               │  [on Start Game click]
-              └─> GameFrame (JFrame)
-                    ├─> GamePanel (JPanel, Game-Loop via dedicated Thread / fixed-timestep accumulator)  [content pane]
-                    │     ├─> GameState (game logic, update loop)
-                    │     │     ├─> Paddle (left & right)
-                    │     │     ├─> Ball
-                    │     │     ├─> Score
-                    │     │     ├─> InputController (KeyAdapter)
-                    │     │     └─> AiController (only VS_COMPUTER)
-                    │     └─> InputController (KeyAdapter, directly on panel)
-                    └─> InGameMenuPanel (JPanel, glass pane, Esc-key overlay menu)
+              ├─> GameFrame (JFrame)
+              │     ├─> GamePanel (JPanel, Game-Loop via dedicated Thread / fixed-timestep accumulator)  [content pane]
+              │     │     ├─> GameState (game logic, update loop)
+              │     │     │     ├─> Paddle (left & right)
+              │     │     │     ├─> Ball
+              │     │     │     ├─> Score
+              │     │     │     ├─> InputController (KeyAdapter)
+              │     │     │     └─> AiController (only VS_COMPUTER)
+              │     │     └─> InputController (KeyAdapter, directly on panel)
+              │     └─> InGameMenuPanel (JPanel, glass pane, Esc-key overlay menu)
+              │
+              │  [on Online Multiplayer click]
+              └─> OnlineMenuFrame (JFrame, CardLayout: main / host / join)
+                    │  [host flow]
+                    ├─> OnlineServer (TCP ServerSocket, game loop thread, snapshot broadcaster)
+                    │     └─> OnlineGameState (authoritative physics, identical to GameState)
+                    │  [join flow]
+                    ├─> OnlineClient (TCP Socket, background read loop)
+                    │
+                    └─> OnlineGameFrame (JFrame)  [shown for both host and joiner]
+                          ├─> OnlineGamePanel (JPanel, renders from GameSnapshot, sends input)
+                          └─> OnlineInGameMenuPanel (JPanel, glass pane, Resume / Disconnect)
+```
+
+### Online networking model
+
+```
+Host machine                              Joiner machine
+─────────────────────────────────────────────────────────
+OnlineServer                              OnlineClient
+  ├─ runs authoritative OnlineGameState     ├─ connects to host
+  ├─ reads local keyboard input             ├─ reads snapshots → updates latestSnapshot
+  ├─ reads remote INPUT messages            └─ sends INPUT messages on key events
+  └─ broadcasts SNAPSHOT after each step
+
+Protocol (TCP, binary):
+  Client→Server  MSG_INPUT    1B type | 4B seq | 1B up | 1B down
+  Server→Client  MSG_SNAPSHOT 1B type | 8B tick | 8B×6 positions+vel | 4B×2 score | 1B×2 flags | 4B countdown
+  Handshake      Server→Client: 1B version | 1B role
 ```
 
 ---
@@ -363,9 +399,9 @@ Lang ..> Score : uses
 
 | Class | Package | Responsibility |
 |---|---|---|
-| `PongApp` | `pong` | Entry point; stores the selected language and window-size preset across sessions; `startGame()` shows the menu; `updatePreferences()` persists in-game settings changes |
-| `MenuFrame` | `pong` | Swing window that hosts `MenuPanel`; disposes itself when "Start Game" is clicked |
-| `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), window-size preset radio buttons, "Start Game" button |
+| `PongApp` | `pong` | Entry point; stores the selected language and window-size preset across sessions; `startGame()` shows the menu; `startOnline()` shows the online multiplayer menu; `updatePreferences()` persists in-game settings changes |
+| `MenuFrame` | `pong` | Swing window that hosts `MenuPanel`; disposes itself when "Start Game" or "Online Multiplayer" is clicked |
+| `MenuPanel` | `pong` | Pre-game menu: language radio buttons, game-mode radio buttons, difficulty radio buttons (greyed out when 2 Players is selected), window-size preset radio buttons, "Start Game" and "Online Multiplayer (LAN)" buttons |
 | `MenuPanel.MenuResult` | `pong` | Record returned by `MenuPanel` carrying mode, difficulty, language, and window-size preset |
 | `WindowPreset` | `pong` | Enum of the three available window-size presets (1080p: 1350×900, 1440p: 1800×1200, 4K: 3000×2000); each preset carries its label, width, and height |
 | `GameFrame` | `pong` | Game window; sets the game-panel preferred size to the chosen preset before `pack()`; hosts `GamePanel` as content pane and `InGameMenuPanel` as glass pane; wires ESC-key logic to show/hide the overlay |
@@ -381,3 +417,13 @@ Lang ..> Score : uses
 | `InputController` | `pong.input` | Thread-safe keyboard input via `KeyAdapter`; key state is stored in a `ConcurrentHashMap`-backed set so reads from the game loop thread and writes from the EDT are safe without additional synchronization |
 | `AiController` | `pong.ai` | AI control of the right paddle with difficulty-dependent reaction |
 | `GameConstants` | `pong.util` | Central game constants (sizes, speeds, colors) |
+| `Protocol` | `pong.online` | Network protocol constants: default port (7777), message type bytes, protocol version, role constants |
+| `GameSnapshot` | `pong.online` | Immutable record of the authoritative game state sent from server to both players; includes read/write helpers for the binary wire format |
+| `NetUtil` | `pong.online` | Discovers viable LAN IPv4 addresses by enumerating network interfaces; used on the host screen |
+| `OnlineGameState` | `pong.online` | Authoritative physics state owned by `OnlineServer`; identical physics to `GameState` but takes explicit left/right paddle velocities; not exposed to clients |
+| `OnlineServer` | `pong.online` | TCP server: binds port 7777, accepts one client, runs fixed-timestep game loop, reads remote `INPUT` messages, broadcasts `SNAPSHOT` to local renderer and remote client |
+| `OnlineClient` | `pong.online` | TCP client: connects to host, reads `SNAPSHOT` messages on a background thread, sends `INPUT` messages on key events |
+| `OnlineGamePanel` | `pong.online` | Renders from the latest `GameSnapshot`; forwards key events to `OnlineServer.setLocalInput` (host) or `OnlineClient.sendInput` (joiner); starts the appropriate loop in `addNotify()` |
+| `OnlineInGameMenuPanel` | `pong.online` | Minimal glass-pane overlay for online sessions: Resume (close overlay) and Disconnect (end session, return to menu) |
+| `OnlineGameFrame` | `pong.online` | Game window for online sessions; hosts `OnlineGamePanel` and `OnlineInGameMenuPanel`; handles clean disconnect on window close, Disconnect button, or unexpected connection loss |
+| `OnlineMenuFrame` | `pong.online` | Three-card menu (main / host / join); host card shows LAN addresses and starts the server; join card accepts IP/port and connects the client; error dialogs shown on bind/connect failure |

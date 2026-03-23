@@ -53,14 +53,16 @@ public class MenuPanel extends JPanel {
     private final JRadioButton rbPreset4K    = new JRadioButton(WindowPreset.P4K.label);
     private final JRadioButton rbPresetSmall = new JRadioButton(WindowPreset.P_SMALL.label);
 
-    // ── start button ─────────────────────────────────────────────────────────
-    private final JButton btnStart = new JButton();
+    // ── start / online buttons ────────────────────────────────────────────────
+    private final JButton btnStart  = new JButton();
+    private final JButton btnOnline = new JButton("Online Multiplayer (LAN)");
 
     // ── disabled foreground colour ────────────────────────────────────────────
     private static final Color FG_DISABLED = new Color(110, 110, 120);
 
     public MenuPanel(Lang initialLang, WindowPreset initialPreset,
-                     GraphicsConfiguration gc, Consumer<MenuResult> onStart) {
+                     GraphicsConfiguration gc, Consumer<MenuResult> onStart,
+                     Runnable onOnline) {
         this.lang = initialLang;
 
         setBackground(GameConstants.BG);
@@ -123,6 +125,15 @@ public class MenuPanel extends JPanel {
         btnStart.setOpaque(true);
         btnStart.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnStart.setPreferredSize(new Dimension(200, 42));
+
+        btnOnline.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btnOnline.setBackground(new Color(60, 180, 100));
+        btnOnline.setForeground(GameConstants.BG);
+        btnOnline.setFocusPainted(false);
+        btnOnline.setBorderPainted(false);
+        btnOnline.setOpaque(true);
+        btnOnline.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnOnline.setPreferredSize(new Dimension(220, 38));
 
         // difficulty starts disabled (2 Players is the default selection)
         applyDifficultyEnabled(false);
@@ -208,6 +219,11 @@ public class MenuPanel extends JPanel {
         c.insets = new Insets(22, 0, 0, 0);
         add(btnStart, c);
 
+        // ── online multiplayer button ──────────────────────────────────────────
+        c.gridy = ++row;
+        c.insets = new Insets(8, 0, 0, 0);
+        add(btnOnline, c);
+
         // ── listeners ─────────────────────────────────────────────────────────
         rbLangEn.addActionListener(e -> { lang = Lang.EN; refreshLabels(); });
         rbLangDe.addActionListener(e -> { lang = Lang.DE; refreshLabels(); });
@@ -223,6 +239,8 @@ public class MenuPanel extends JPanel {
             else                              diff = Difficulty.MEDIUM;
             onStart.accept(new MenuResult(mode, diff, lang, selectedPreset()));
         });
+
+        btnOnline.addActionListener(e -> onOnline.run());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
