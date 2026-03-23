@@ -33,8 +33,8 @@ public enum Lang {
     public String diffEasy()        { return this == EN ? "Easy"               : "Einfach"; }
     public String diffMedium()      { return this == EN ? "Medium"             : "Mittel"; }
     public String diffHard()        { return this == EN ? "Hard"               : "Schwer"; }
-    public String btnStart()        { return this == EN ? "Start Game"         : "Spiel starten"; }
-    public String labelFullscreen() { return this == EN ? "Fullscreen"         : "Vollbild"; }
+    public String btnStart()          { return this == EN ? "Start Game"    : "Spiel starten"; }
+    public String labelWindowSize()   { return this == EN ? "Window Size"   : "Fenstergröße"; }
 
     // ── In-game menu strings ──────────────────────────────────────────────────
 

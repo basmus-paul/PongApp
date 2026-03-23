@@ -9,24 +9,24 @@ public class PongApp {
     /** Last language chosen by the user; remembered when returning to the menu. */
     private static Lang currentLang = Lang.EN;
 
-    /** Last fullscreen preference chosen by the user; remembered when returning to the menu. */
-    private static boolean currentFullscreen = false;
+    /** Last window-size preset chosen by the user; remembered when returning to the menu. */
+    private static WindowPreset currentPreset = WindowPreset.P1080;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(PongApp::startGame);
     }
 
     public static void startGame() {
-        new MenuFrame(currentLang, currentFullscreen, result -> {
-            currentLang = result.lang();
-            currentFullscreen = result.fullscreen();
-            new GameFrame(result.mode(), result.difficulty(), result.lang(), result.fullscreen()).setVisible(true);
+        new MenuFrame(currentLang, currentPreset, result -> {
+            currentLang   = result.lang();
+            currentPreset = result.preset();
+            new GameFrame(result.mode(), result.difficulty(), result.lang(), result.preset()).setVisible(true);
         }).setVisible(true);
     }
 
-    /** Called from the in-game menu to update stored language and fullscreen preferences. */
-    public static void updatePreferences(Lang lang, boolean fullscreen) {
-        currentLang = lang;
-        currentFullscreen = fullscreen;
+    /** Called from the in-game menu to update stored language and window-size preferences. */
+    public static void updatePreferences(Lang lang, WindowPreset preset) {
+        currentLang   = lang;
+        currentPreset = preset;
     }
 }
