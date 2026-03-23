@@ -11,11 +11,12 @@ import java.util.function.Consumer;
 /**
  * The main menu panel.
  *
- * <p>Shows three groups of radio buttons (language, game mode, difficulty), a
- * fullscreen checkbox, and a "Start Game" button.  Difficulty options are
- * automatically greyed out when "2 Players" is selected; they become active
- * again when "vs. Computer" is chosen.  Switching the language instantly
- * re-labels every component.</p>
+ * <p>Shows four groups of radio buttons (language, game mode, difficulty,
+ * window size) and a "Start Game" button.  Difficulty options are automatically
+ * greyed out when "2 Players" is selected; they become active again when
+ * "vs. Computer" is chosen.  Window-size presets that exceed the usable screen
+ * area are automatically disabled (greyed out).  Switching the language
+ * instantly re-labels every component.</p>
  */
 public class MenuPanel extends JPanel {
 
@@ -25,38 +26,41 @@ public class MenuPanel extends JPanel {
      * @param mode       chosen game mode
      * @param difficulty chosen difficulty (only meaningful for VS_COMPUTER)
      * @param lang       chosen language
-     * @param fullscreen whether to launch the game in fullscreen mode
+     * @param preset     chosen window-size preset
      */
-    public record MenuResult(GameMode mode, Difficulty difficulty, Lang lang, boolean fullscreen) {}
+    public record MenuResult(GameMode mode, Difficulty difficulty, Lang lang, WindowPreset preset) {}
 
     // ── current language ─────────────────────────────────────────────────────
     private Lang lang;
 
     // ── labels ────────────────────────────────────────────────────────────────
-    private final JLabel lblLanguage  = new JLabel();
-    private final JLabel lblMode      = new JLabel();
-    private final JLabel lblDiff      = new JLabel();
-    private final JLabel lblDiffNote  = new JLabel();
+    private final JLabel lblLanguage   = new JLabel();
+    private final JLabel lblMode       = new JLabel();
+    private final JLabel lblDiff       = new JLabel();
+    private final JLabel lblDiffNote   = new JLabel();
+    private final JLabel lblWindowSize = new JLabel();
 
     // ── radio buttons ─────────────────────────────────────────────────────────
-    private final JRadioButton rbLangEn     = new JRadioButton();
-    private final JRadioButton rbLangDe     = new JRadioButton();
-    private final JRadioButton rbMode2P     = new JRadioButton();
-    private final JRadioButton rbModeComp   = new JRadioButton();
-    private final JRadioButton rbDiffEasy   = new JRadioButton();
-    private final JRadioButton rbDiffMedium = new JRadioButton();
-    private final JRadioButton rbDiffHard   = new JRadioButton();
+    private final JRadioButton rbLangEn      = new JRadioButton();
+    private final JRadioButton rbLangDe      = new JRadioButton();
+    private final JRadioButton rbMode2P      = new JRadioButton();
+    private final JRadioButton rbModeComp    = new JRadioButton();
+    private final JRadioButton rbDiffEasy    = new JRadioButton();
+    private final JRadioButton rbDiffMedium  = new JRadioButton();
+    private final JRadioButton rbDiffHard    = new JRadioButton();
+    private final JRadioButton rbPreset1080  = new JRadioButton(WindowPreset.P1080.label);
+    private final JRadioButton rbPreset1440  = new JRadioButton(WindowPreset.P1440.label);
+    private final JRadioButton rbPreset4K    = new JRadioButton(WindowPreset.P4K.label);
+    private final JRadioButton rbPresetSmall = new JRadioButton(WindowPreset.P_SMALL.label);
 
     // ── start button ─────────────────────────────────────────────────────────
     private final JButton btnStart = new JButton();
 
-    // ── fullscreen checkbox ───────────────────────────────────────────────────
-    private final JCheckBox cbFullscreen = new JCheckBox();
-
     // ── disabled foreground colour ────────────────────────────────────────────
     private static final Color FG_DISABLED = new Color(110, 110, 120);
 
-    public MenuPanel(Lang initialLang, boolean initialFullscreen, Consumer<MenuResult> onStart) {
+    public MenuPanel(Lang initialLang, WindowPreset initialPreset,
+                     GraphicsConfiguration gc, Consumer<MenuResult> onStart) {
         this.lang = initialLang;
 
         setBackground(GameConstants.BG);
@@ -86,13 +90,18 @@ public class MenuPanel extends JPanel {
         bgDiff.add(rbDiffHard);
         rbDiffMedium.setSelected(true);
 
-        cbFullscreen.setSelected(initialFullscreen);
+        ButtonGroup bgPreset = new ButtonGroup();
+        bgPreset.add(rbPreset1080);
+        bgPreset.add(rbPreset1440);
+        bgPreset.add(rbPreset4K);
+        bgPreset.add(rbPresetSmall);
+        presetButton(initialPreset).setSelected(true);
 
         // ── shared styling ────────────────────────────────────────────────────
         Font sectionFont = new Font("SansSerif", Font.BOLD, 15);
         Font itemFont    = new Font("SansSerif", Font.PLAIN, 14);
 
-        for (JLabel lbl : new JLabel[]{lblLanguage, lblMode, lblDiff}) {
+        for (JLabel lbl : new JLabel[]{lblLanguage, lblMode, lblDiff, lblWindowSize}) {
             lbl.setForeground(GameConstants.FG);
             lbl.setFont(sectionFont);
         }
@@ -106,11 +115,6 @@ public class MenuPanel extends JPanel {
             rb.setFocusPainted(false);
         }
 
-        cbFullscreen.setOpaque(false);
-        cbFullscreen.setForeground(GameConstants.FG);
-        cbFullscreen.setFont(itemFont);
-        cbFullscreen.setFocusPainted(false);
-
         btnStart.setFont(new Font("SansSerif", Font.BOLD, 16));
         btnStart.setBackground(GameConstants.ACCENT);
         btnStart.setForeground(GameConstants.BG);
@@ -122,6 +126,9 @@ public class MenuPanel extends JPanel {
 
         // difficulty starts disabled (2 Players is the default selection)
         applyDifficultyEnabled(false);
+
+        // disable presets that don't fit on the current screen
+        applyPresetAvailability(gc);
 
         // apply initial text
         refreshLabels();
@@ -180,10 +187,20 @@ public class MenuPanel extends JPanel {
 
         add(separator(), separatorConstraints(row++));
 
-        // ── fullscreen section ────────────────────────────────────────────────
+        // ── window size section ───────────────────────────────────────────────
         c.gridx = 0; c.gridy = row++; c.gridwidth = 3;
+        c.insets = sectionInsets();
+        add(lblWindowSize, c);
+
+        c.gridwidth = 1;
         c.insets = itemInsets();
-        add(cbFullscreen, c);
+        c.gridx = 0; c.gridy = row;   add(rbPreset1080, c);
+        c.gridx = 1; c.gridy = row;   add(rbPreset1440, c);
+        c.gridx = 2; c.gridy = row++; add(rbPreset4K,   c);
+
+        c.gridx = 0; c.gridy = row++; c.gridwidth = 1;
+        c.insets = itemInsets();
+        add(rbPresetSmall, c);
 
         // ── start button ──────────────────────────────────────────────────────
         c.gridx = 0; c.gridy = row; c.gridwidth = 3;
@@ -204,26 +221,69 @@ public class MenuPanel extends JPanel {
             if      (rbDiffEasy.isSelected()) diff = Difficulty.EASY;
             else if (rbDiffHard.isSelected()) diff = Difficulty.HARD;
             else                              diff = Difficulty.MEDIUM;
-            onStart.accept(new MenuResult(mode, diff, lang, cbFullscreen.isSelected()));
+            onStart.accept(new MenuResult(mode, diff, lang, selectedPreset()));
         });
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
+    private JRadioButton presetButton(WindowPreset preset) {
+        return switch (preset) {
+            case P1440   -> rbPreset1440;
+            case P4K     -> rbPreset4K;
+            case P_SMALL -> rbPresetSmall;
+            default      -> rbPreset1080;
+        };
+    }
+
+    private WindowPreset selectedPreset() {
+        if (rbPreset1440.isSelected())  return WindowPreset.P1440;
+        if (rbPreset4K.isSelected())    return WindowPreset.P4K;
+        if (rbPresetSmall.isSelected()) return WindowPreset.P_SMALL;
+        return WindowPreset.P1080;
+    }
+
+    /**
+     * Disables preset radio buttons whose window size exceeds the usable screen
+     * area, and ensures the current selection remains on an enabled preset.
+     */
+    private void applyPresetAvailability(GraphicsConfiguration gc) {
+        Dimension usable = WindowPreset.usableSize(gc);
+
+        setPresetEnabled(rbPreset1080, WindowPreset.P1080.fitsIn(usable));
+        setPresetEnabled(rbPreset1440, WindowPreset.P1440.fitsIn(usable));
+        setPresetEnabled(rbPreset4K,   WindowPreset.P4K.fitsIn(usable));
+        // P_SMALL (900×600) is always enabled
+        rbPresetSmall.setEnabled(true);
+        rbPresetSmall.setForeground(GameConstants.FG);
+
+        // If the currently selected preset is now disabled, auto-select the
+        // largest one that fits.
+        JRadioButton selected = presetButton(selectedPreset());
+        if (!selected.isEnabled()) {
+            presetButton(WindowPreset.largestFitting(usable)).setSelected(true);
+        }
+    }
+
+    private void setPresetEnabled(JRadioButton rb, boolean enabled) {
+        rb.setEnabled(enabled);
+        rb.setForeground(enabled ? GameConstants.FG : FG_DISABLED);
+    }
+
     private void refreshLabels() {
-        lblLanguage .setText(lang.labelLanguage()   + ":");
-        rbLangEn    .setText("English");
-        rbLangDe    .setText("Deutsch");
-        lblMode     .setText(lang.labelGameMode()   + ":");
-        rbMode2P    .setText(lang.mode2Players());
-        rbModeComp  .setText(lang.modeVsComputer());
-        lblDiff     .setText(lang.labelDifficulty() + ":");
-        lblDiffNote .setText(lang.diffNote());
-        rbDiffEasy  .setText(lang.diffEasy());
-        rbDiffMedium.setText(lang.diffMedium());
-        rbDiffHard  .setText(lang.diffHard());
-        cbFullscreen.setText(lang.labelFullscreen());
-        btnStart    .setText(lang.btnStart());
+        lblLanguage  .setText(lang.labelLanguage()   + ":");
+        rbLangEn     .setText("English");
+        rbLangDe     .setText("Deutsch");
+        lblMode      .setText(lang.labelGameMode()   + ":");
+        rbMode2P     .setText(lang.mode2Players());
+        rbModeComp   .setText(lang.modeVsComputer());
+        lblDiff      .setText(lang.labelDifficulty() + ":");
+        lblDiffNote  .setText(lang.diffNote());
+        rbDiffEasy   .setText(lang.diffEasy());
+        rbDiffMedium .setText(lang.diffMedium());
+        rbDiffHard   .setText(lang.diffHard());
+        lblWindowSize.setText(lang.labelWindowSize() + ":");
+        btnStart     .setText(lang.btnStart());
     }
 
     private void applyDifficultyEnabled(boolean enabled) {
@@ -240,7 +300,8 @@ public class MenuPanel extends JPanel {
         return new JRadioButton[]{
                 rbLangEn, rbLangDe,
                 rbMode2P, rbModeComp,
-                rbDiffEasy, rbDiffMedium, rbDiffHard
+                rbDiffEasy, rbDiffMedium, rbDiffHard,
+                rbPreset1080, rbPreset1440, rbPreset4K, rbPresetSmall
         };
     }
 

@@ -14,12 +14,12 @@ import java.util.function.Consumer;
  */
 public class MenuFrame extends JFrame {
 
-    public MenuFrame(Lang initialLang, boolean initialFullscreen, Consumer<MenuPanel.MenuResult> onStart) {
+    public MenuFrame(Lang initialLang, WindowPreset initialPreset, Consumer<MenuPanel.MenuResult> onStart) {
         setTitle("Pong");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
 
-        MenuPanel panel = new MenuPanel(initialLang, initialFullscreen, result -> {
+        MenuPanel panel = new MenuPanel(initialLang, initialPreset, getGraphicsConfiguration(), result -> {
             dispose();
             SwingUtilities.invokeLater(() -> onStart.accept(result));
         });

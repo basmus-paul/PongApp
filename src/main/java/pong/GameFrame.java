@@ -4,31 +4,25 @@ import pong.i18n.Lang;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
 
 public class GameFrame extends JFrame {
-    public GameFrame(GameMode mode, Difficulty difficulty, Lang lang, boolean fullscreen) {
+    public GameFrame(GameMode mode, Difficulty difficulty, Lang lang, WindowPreset preset) {
         setTitle("Pong (OOP) - " + mode);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
-        if (fullscreen) setUndecorated(true);
-
-        GraphicsDevice gd = GraphicsEnvironment
-                .getLocalGraphicsEnvironment().getDefaultScreenDevice();
 
         // ── game panel ────────────────────────────────────────────────────────
         GamePanel panel = new GamePanel(mode, difficulty, lang, () -> {
-            if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
             dispose();
             SwingUtilities.invokeLater(PongApp::startGame);
         });
+        panel.setPreferredSize(preset.toDimension());
         setContentPane(panel);
         pack();
 
         // ── in-game overlay menu (glass pane) ─────────────────────────────────
         InGameMenuPanel overlay = new InGameMenuPanel(
-                mode, difficulty, lang, fullscreen,
+                mode, difficulty, lang, preset, getGraphicsConfiguration(),
                 // onResume
                 () -> {
                     setGlassPane(new javax.swing.JPanel());  // clear glass pane
@@ -38,16 +32,14 @@ public class GameFrame extends JFrame {
                 },
                 // onNewGame
                 result -> {
-                    PongApp.updatePreferences(result.lang(), result.fullscreen());
-                    if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
+                    PongApp.updatePreferences(result.lang(), result.preset());
                     dispose();
                     SwingUtilities.invokeLater(() ->
                             new GameFrame(result.mode(), result.difficulty(),
-                                    result.lang(), result.fullscreen()).setVisible(true));
+                                    result.lang(), result.preset()).setVisible(true));
                 },
                 // onExit
                 () -> {
-                    if (gd.getFullScreenWindow() == this) gd.setFullScreenWindow(null);
                     dispose();
                     SwingUtilities.invokeLater(PongApp::startGame);
                 }
@@ -70,17 +62,7 @@ public class GameFrame extends JFrame {
             }
         });
 
-        // ── fullscreen ────────────────────────────────────────────────────────
-        if (fullscreen) {
-            if (gd.isFullScreenSupported()) {
-                gd.setFullScreenWindow(this);
-            } else {
-                setExtendedState(JFrame.MAXIMIZED_BOTH);
-                setLocationRelativeTo(null);
-            }
-        } else {
-            setLocationRelativeTo(null);
-        }
+        setLocationRelativeTo(null);
 
         // ensure key focus
         SwingUtilities.invokeLater(panel::requestFocusInWindow);

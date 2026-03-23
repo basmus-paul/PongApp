@@ -29,7 +29,7 @@ java -jar build/libs/PongApp-1.0.jar
 
 ## Startup Menu
 
-At launch a full-screen menu appears with the following options:
+At launch a menu appears with the following options:
 
 ### Language
 
@@ -52,13 +52,23 @@ Choose between **English** and **Deutsch**. The entire UI (menu labels, in-game 
 
 > The difficulty options are greyed out when **2 Players** is selected and become active only when **vs. Computer** is chosen.
 
+### Window Size
+
+Select the game window size using one of three presets:
+
+| Preset | Resolution | Notes |
+|--------|-----------|-------|
+| **1080p** | 1350 × 900 | Default — suitable for 1080p displays |
+| **1440p** | 1800 × 1200 | Suitable for 1440p / QHD displays |
+| **4K**    | 3000 × 2000 | Suitable for 4K / UHD displays |
+
+The logical game resolution is always fixed at **900 × 600**. The game rendering scales automatically to fill the chosen window size, so gameplay is identical regardless of which preset you pick. The setting is remembered if you return to the menu mid-game.
+
+> **Note:** Fullscreen mode was intentionally removed due to jitter and stuttering issues on lower refresh-rate displays.
+
 ### Start Game button
 
 Press **Start Game** to launch the game with the selected parameters. A **3-second countdown** (3 → 2 → 1) is shown in the centre of the screen before gameplay begins.
-
-### Fullscreen
-
-Check the **Fullscreen** checkbox to launch the game in fullscreen mode. Uncheck it to play in a window. The setting is remembered if you return to the menu mid-game. Gameplay speed (ball and paddle movement) is identical in both windowed and fullscreen mode, regardless of display refresh rate. Keyboard input is tracked with a thread-safe set (`ConcurrentHashMap.newKeySet()`) and repaints are scheduled directly from the game loop thread to minimise latency on 60 Hz displays.
 
 ## Controls
 
@@ -80,7 +90,7 @@ Press **`Esc`** at any time during gameplay to pause the game and open the in-ga
 | **New Game** | Apply the selected settings and start a fresh game |
 | **Exit** | Return to the main start menu |
 
-The in-game menu contains the same settings as the start menu (language, game mode, difficulty, fullscreen). Changes take effect when you click **New Game**.
+The in-game menu contains the same settings as the start menu (language, game mode, difficulty, window size). Changes take effect when you click **New Game**.
 
 ## Win Condition
 
