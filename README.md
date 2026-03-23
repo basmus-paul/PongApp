@@ -46,15 +46,15 @@ Choose between **English** and **Deutsch**. The entire UI (menu labels, in-game 
 
 | Difficulty | Description |
 |------------|-------------|
-| **Easy** | Slow AI with a large tolerance zone |
-| **Medium** | Balanced AI (default) |
-| **Hard** | Fast, highly reactive AI |
+| **Easy** | Balanced AI — manageable challenge for most players |
+| **Medium** | Fast, highly reactive AI |
+| **Hard** | Maximum-speed AI with near-instant reaction — very difficult |
 
 > The difficulty options are greyed out when **2 Players** is selected and become active only when **vs. Computer** is chosen.
 
 ### Start Game button
 
-Press **Start Game** to launch the game with the selected parameters.
+Press **Start Game** to launch the game with the selected parameters. A **3-second countdown** (3 → 2 → 1) is shown in the centre of the screen before gameplay begins.
 
 ### Fullscreen
 
@@ -67,7 +67,7 @@ Check the **Fullscreen** checkbox to launch the game in fullscreen mode. Uncheck
 | Paddle up               | `W`        | `↑`              |
 | Paddle down             | `S`        | `↓`              |
 | Pause / toggle          | `P`        | –                |
-| Restart                 | `R`        | –                |
+| Restart (+ new countdown) | `R`      | –                |
 | Open / close in-game menu | `Esc`    | –                |
 
 ## In-Game Menu
