@@ -50,6 +50,7 @@ public final class OnlineClient {
      */
     public void connect(String host, int port) throws IOException {
         socket = new Socket(host, port);
+        socket.setTcpNoDelay(true);
         in  = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 

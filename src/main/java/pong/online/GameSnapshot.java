@@ -57,7 +57,7 @@ public record GameSnapshot(
 
     /**
      * Writes this snapshot to {@code out}, including the leading message-type byte.
-     * Flushes the stream afterwards.
+     * Does not flush; the caller is responsible for flushing at the appropriate time.
      */
     public void writeTo(DataOutputStream out) throws IOException {
         out.writeByte(Protocol.MSG_SNAPSHOT);
@@ -73,7 +73,6 @@ public record GameSnapshot(
         out.writeBoolean(paused);
         out.writeBoolean(gameOver);
         out.writeInt(countdown);
-        out.flush();
     }
 
     /**

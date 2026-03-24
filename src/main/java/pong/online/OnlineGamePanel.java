@@ -3,6 +3,7 @@ package pong.online;
 import pong.util.GameConstants;
 
 import javax.swing.JPanel;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -22,11 +23,34 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>Both {@code W}/{@code S} and {@code ↑}/{@code ↓} are accepted so either
  * player can use whichever key pair they prefer.</p>
+ *
+ * <p>Rendering runs at a fixed ~60 FPS via a Swing {@link Timer}, decoupled from
+ * network snapshot arrival. The joiner interpolates ball and opponent paddle
+ * positions between the two most recent snapshots (~100 ms behind real time) to
+ * smooth over TCP jitter, and applies client-side prediction for its own paddle.</p>
  */
 public final class OnlineGamePanel extends JPanel {
 
-    private volatile GameSnapshot latestSnapshot = GameSnapshot.empty();
-    private volatile boolean      repaintPending = false;
+    // ── rendering constants ───────────────────────────────────────────────────
+    /** How far behind real time the joiner renders, in nanoseconds (100 ms). */
+    private static final long   INTERPOLATION_DELAY_NANOS  = 100_000_000L;
+    /** Reconciliation blend per frame: predictedY moves 25 % toward server value. */
+    private static final double PREDICTION_BLEND_FACTOR    = 0.25;
+    /** If prediction error exceeds this many pixels, snap immediately to server. */
+    private static final int    PREDICTION_SNAP_THRESHOLD_PX = 30;
+
+    // ── snapshot interpolation buffer ─────────────────────────────────────────
+    private volatile GameSnapshot prevSnapshot     = null;
+    private volatile GameSnapshot nextSnapshot     = GameSnapshot.empty();
+    private volatile long         prevArrivalNanos = 0;
+    private volatile long         nextArrivalNanos = System.nanoTime();
+
+    // ── client-side prediction (ROLE_RIGHT, EDT-only) ─────────────────────────
+    private double predictedRightY = GameSnapshot.empty().rightPaddleY();
+    private long   lastRenderNanos = System.nanoTime();
+
+    // ── render timer ──────────────────────────────────────────────────────────
+    private final Timer renderTimer = new Timer(1000 / 60, e -> repaint());
 
     private final OnlineServer server; // non-null for host
     private final OnlineClient client; // non-null for joiner
@@ -90,13 +114,17 @@ public final class OnlineGamePanel extends JPanel {
         }
     }
 
-    /** Called when a new snapshot arrives; may be called from any thread. */
+    /**
+     * Called when a new snapshot arrives; may be called from any thread.
+     * Stores the snapshot in the interpolation buffer; rendering is driven by
+     * the fixed-rate timer, not by snapshot arrival.
+     */
     public void onSnapshot(GameSnapshot snap) {
-        latestSnapshot = snap;
-        if (!repaintPending) {
-            repaintPending = true;
-            repaint();
-        }
+        long now = System.nanoTime();
+        prevSnapshot     = nextSnapshot;
+        prevArrivalNanos = nextArrivalNanos;
+        nextSnapshot     = snap;
+        nextArrivalNanos = now;
     }
 
     /** Sets the callback invoked when the player presses {@code Esc}. */
@@ -108,6 +136,7 @@ public final class OnlineGamePanel extends JPanel {
     public void addNotify() {
         super.addNotify();
         if (started.compareAndSet(false, true)) {
+            renderTimer.start();
             if (server != null) {
                 server.startGameLoop(this::onSnapshot);
             } else if (client != null) {
@@ -117,12 +146,71 @@ public final class OnlineGamePanel extends JPanel {
         }
     }
 
+    @Override
+    public void removeNotify() {
+        renderTimer.stop();
+        super.removeNotify();
+    }
+
     // ── rendering ─────────────────────────────────────────────────────────────
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        GameSnapshot snap = latestSnapshot;
+
+        long now = System.nanoTime();
+
+        GameSnapshot prev = prevSnapshot;
+        GameSnapshot next = nextSnapshot;
+
+        // Determine interpolated positions
+        double leftY, rightY, bx, by;
+
+        if (role == Protocol.ROLE_RIGHT && prev != null) {
+            // Render behind real time so interpolation almost always has two
+            // snapshots bracketing the render point, smoothing TCP jitter.
+            // ROLE_LEFT (host) renders from the latest snapshot directly: it
+            // receives authoritative state with no network delay.
+            long renderTime = now - INTERPOLATION_DELAY_NANOS;
+            long t0         = prevArrivalNanos;
+            long t1         = nextArrivalNanos;
+            double alpha = (t1 > t0) ? (double) (renderTime - t0) / (t1 - t0) : 1.0;
+            alpha = Math.max(0.0, Math.min(1.0, alpha));
+
+            leftY  = lerp(prev.leftPaddleY(),  next.leftPaddleY(),  alpha);
+            rightY = lerp(prev.rightPaddleY(), next.rightPaddleY(), alpha);
+            bx     = lerp(prev.ballX(),        next.ballX(),        alpha);
+            by     = lerp(prev.ballY(),        next.ballY(),        alpha);
+        } else {
+            // Host (ROLE_LEFT) or no prev snapshot yet: render from latest snapshot.
+            leftY  = next.leftPaddleY();
+            rightY = next.rightPaddleY();
+            bx     = next.ballX();
+            by     = next.ballY();
+        }
+
+        // Client-side prediction for the joiner's own paddle
+        if (role == Protocol.ROLE_RIGHT) {
+            double dt = Math.min((now - lastRenderNanos) / 1_000_000_000.0, 0.05);
+            lastRenderNanos = now;
+
+            if (upDown)   predictedRightY -= GameConstants.PADDLE_SPEED * dt;
+            if (downDown) predictedRightY += GameConstants.PADDLE_SPEED * dt;
+            predictedRightY = Math.max(0,
+                    Math.min(GameConstants.HEIGHT - GameConstants.PADDLE_HEIGHT,
+                            predictedRightY));
+
+            // Reconcile toward server authority
+            double serverY = next.rightPaddleY();
+            double error   = serverY - predictedRightY;
+            if (Math.abs(error) > PREDICTION_SNAP_THRESHOLD_PX) {
+                predictedRightY = serverY;
+            } else {
+                predictedRightY += error * PREDICTION_BLEND_FACTOR;
+            }
+
+            rightY = predictedRightY;
+        }
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -142,23 +230,23 @@ public final class OnlineGamePanel extends JPanel {
         // paddles
         g2.setColor(GameConstants.FG);
         g2.fillRect(40,
-                (int) snap.leftPaddleY(),
+                (int) leftY,
                 GameConstants.PADDLE_WIDTH, GameConstants.PADDLE_HEIGHT);
         g2.fillRect(GameConstants.WIDTH - 40 - GameConstants.PADDLE_WIDTH,
-                (int) snap.rightPaddleY(),
+                (int) rightY,
                 GameConstants.PADDLE_WIDTH, GameConstants.PADDLE_HEIGHT);
 
         // ball
         g2.setColor(GameConstants.ACCENT);
-        g2.fillOval((int) snap.ballX(), (int) snap.ballY(),
+        g2.fillOval((int) bx, (int) by,
                 GameConstants.BALL_SIZE, GameConstants.BALL_SIZE);
 
         // scores
         g2.setColor(GameConstants.FG);
         g2.setFont(new Font("SansSerif", Font.BOLD, 44));
         FontMetrics fm = g2.getFontMetrics();
-        String sLeft  = String.valueOf(snap.scoreLeft());
-        String sRight = String.valueOf(snap.scoreRight());
+        String sLeft  = String.valueOf(next.scoreLeft());
+        String sRight = String.valueOf(next.scoreRight());
         int pad = 18;
         g2.drawString(sLeft,  GameConstants.WIDTH / 2 - pad - fm.stringWidth(sLeft),  60);
         g2.drawString(sRight, GameConstants.WIDTH / 2 + pad, 60);
@@ -171,7 +259,7 @@ public final class OnlineGamePanel extends JPanel {
                 16, GameConstants.HEIGHT - 16);
 
         // paused overlay
-        if (snap.paused()) {
+        if (next.paused()) {
             g2.setFont(new Font("SansSerif", Font.BOLD, 54));
             String t = "PAUSED";
             int w = g2.getFontMetrics().stringWidth(t);
@@ -180,9 +268,9 @@ public final class OnlineGamePanel extends JPanel {
         }
 
         // game-over overlay
-        if (snap.gameOver()) {
+        if (next.gameOver()) {
             g2.setFont(new Font("SansSerif", Font.BOLD, 54));
-            String winner = snap.scoreLeft() > snap.scoreRight() ? "LEFT WINS" : "RIGHT WINS";
+            String winner = next.scoreLeft() > next.scoreRight() ? "LEFT WINS" : "RIGHT WINS";
             int w = g2.getFontMetrics().stringWidth(winner);
             g2.setColor(new Color(255, 255, 255, 230));
             g2.drawString(winner, (GameConstants.WIDTH - w) / 2, GameConstants.HEIGHT / 2);
@@ -195,7 +283,7 @@ public final class OnlineGamePanel extends JPanel {
         }
 
         // countdown overlay
-        int cd = snap.countdown();
+        int cd = next.countdown();
         if (cd > 0) {
             g2.setFont(new Font("SansSerif", Font.BOLD, 120));
             String num = String.valueOf(cd);
@@ -207,7 +295,10 @@ public final class OnlineGamePanel extends JPanel {
                     GameConstants.HEIGHT / 2 + cfm.getAscent() / 2 - cfm.getDescent());
         }
 
-        repaintPending = false;
         g2.dispose();
+    }
+
+    private static double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
     }
 }

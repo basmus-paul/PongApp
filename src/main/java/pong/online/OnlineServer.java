@@ -73,6 +73,7 @@ public final class OnlineServer {
         Thread t = new Thread(() -> {
             try {
                 clientSocket = serverSocket.accept();
+                clientSocket.setTcpNoDelay(true);
                 clientIn  = new DataInputStream(
                         new BufferedInputStream(clientSocket.getInputStream()));
                 clientOut = new DataOutputStream(
@@ -192,13 +193,14 @@ public final class OnlineServer {
             if (steps > 0) {
                 GameSnapshot snap = state.toSnapshot(tick++);
 
-                // notify host renderer
+                // notify host renderer on every simulation step
                 if (onSnapshot != null) onSnapshot.accept(snap);
 
-                // send to remote client
-                if (clientOut != null) {
+                // send to remote client at 60 Hz (every other tick)
+                if (snap.tick() % 2 == 0 && clientOut != null) {
                     try {
                         snap.writeTo(clientOut);
+                        clientOut.flush();
                     } catch (IOException e) {
                         if (gameRunning.getAndSet(false)) {
                             SwingUtilities.invokeLater(() -> {
