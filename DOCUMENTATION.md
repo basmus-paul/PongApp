@@ -162,7 +162,7 @@ package pong {
     -selectedPreset(): WindowPreset
   }
 
-  class MenuPanel.MenuResult <<record>> {
+  class MenuResult <<record>> {
     +mode: GameMode
     +difficulty: Difficulty
     +lang: Lang
@@ -357,7 +357,7 @@ MenuPanel ..> GameMode : uses
 MenuPanel ..> Difficulty : uses
 MenuPanel ..> Lang : uses
 MenuPanel ..> WindowPreset : uses
-MenuPanel +-- MenuPanel.MenuResult : defines
+MenuPanel +-- MenuResult : defines
 PongApp ..> GameFrame : creates
 GameFrame *-- GamePanel : contains
 GameFrame *-- InGameMenuPanel : glass pane
@@ -369,7 +369,7 @@ InGameMenuPanel ..> GameMode : uses
 InGameMenuPanel ..> Difficulty : uses
 InGameMenuPanel ..> Lang : uses
 InGameMenuPanel ..> WindowPreset : uses
-InGameMenuPanel ..> MenuPanel.MenuResult : creates
+InGameMenuPanel ..> MenuResult : creates
 GameState *-- Paddle : 2
 GameState *-- Ball : 1
 GameState *-- Score : 1
